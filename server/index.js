@@ -15,6 +15,7 @@ import {
 } from "./game.mjs";
 import { createStaticHandler } from "./static.mjs";
 import { normalizeBoardBackground } from "./boardTheme.mjs";
+import { DEFAULT_TILE_THEME, normalizeTileTheme } from "./tileTheme.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -50,6 +51,9 @@ const tryStatic = !isDev ? createStaticHandler(distDir) : null;
 
 /** @type {{ kind: 'preset'; id: string } | { kind: 'solid'; color: string }} */
 let boardBackground = { kind: "preset", id: "default" };
+
+/** @type {{ frontFace: string; faceBorder: string }} */
+let tileTheme = { ...DEFAULT_TILE_THEME };
 
 /** @type {{ cells: import('./game.mjs').Cell[]; guessed: Set<string>; wrongGuesses: Set<string> } | null} */
 let model = null;
@@ -97,6 +101,7 @@ function statePayloadFor(ws, overridePublic) {
     phase: idle ? "idle" : "playing",
     public: pub,
     boardBackground,
+    tileTheme,
     apiKey: API_KEY,
   };
 
@@ -249,6 +254,17 @@ wss.on("connection", (ws, req) => {
         return;
       }
       boardBackground = next;
+      broadcastStateAll(undefined);
+      return;
+    }
+
+    if (msg.type === "setTileTheme" && msg.tileTheme !== undefined) {
+      const next = normalizeTileTheme(msg.tileTheme);
+      if (!next) {
+        ws.send(JSON.stringify({ type: "error", message: "bad_tile_theme" }));
+        return;
+      }
+      tileTheme = next;
       broadcastStateAll(undefined);
       return;
     }

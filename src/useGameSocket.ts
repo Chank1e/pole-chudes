@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { BoardBackground, ClientMessage, PublicState, ServerErrorMessage, ServerStateMessage } from "./types";
+import type { BoardBackground, ClientMessage, PublicState, ServerErrorMessage, ServerStateMessage, TileTheme } from "./types";
 import { DEFAULT_BOARD_BACKGROUND } from "./boardTheme";
+import { DEFAULT_TILE_THEME } from "./tileTheme";
 
 export type SocketRole = "host" | "board";
 
@@ -14,6 +15,7 @@ export function useGameSocket(role: SocketRole = "board") {
   const [phase, setPhase] = useState<"idle" | "playing">("idle");
   const [publicState, setPublicState] = useState<PublicState | null>(null);
   const [boardBackground, setBoardBackground] = useState<BoardBackground>(DEFAULT_BOARD_BACKGROUND);
+  const [tileTheme, setTileTheme] = useState<TileTheme>(DEFAULT_TILE_THEME);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
   const [hostPhrase, setHostPhrase] = useState<string | null>(null);
@@ -32,6 +34,7 @@ export function useGameSocket(role: SocketRole = "board") {
         setPhase(msg.phase);
         setPublicState(msg.public);
         setBoardBackground(msg.boardBackground ?? DEFAULT_BOARD_BACKGROUND);
+        setTileTheme(msg.tileTheme ?? DEFAULT_TILE_THEME);
         if (typeof msg.apiKey === "string") setApiKey(msg.apiKey);
 
         if (role === "host") {
@@ -120,6 +123,7 @@ export function useGameSocket(role: SocketRole = "board") {
     phase,
     publicState,
     boardBackground,
+    tileTheme,
     apiKey,
     lastError,
     send,

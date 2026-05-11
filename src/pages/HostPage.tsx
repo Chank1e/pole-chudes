@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { useGameSocket } from "../useGameSocket";
 import { normalizeLetter } from "../ru";
 import { BOARD_PRESET_CSS, BOARD_PRESET_META } from "../boardTheme";
+import { DEFAULT_TILE_THEME } from "../tileTheme";
 
 const RU_LETTERS = [
   "Й",
@@ -45,6 +46,7 @@ export function HostPage() {
     phase,
     publicState,
     boardBackground,
+    tileTheme,
     apiKey,
     lastError,
     send,
@@ -89,6 +91,24 @@ export function HostPage() {
 
   const applySolidColor = (hex: string) => {
     send({ type: "setBoardBackground", background: { kind: "solid", color: hex } });
+  };
+
+  const setTileFront = (hex: string) => {
+    send({
+      type: "setTileTheme",
+      tileTheme: { ...tileTheme, frontFace: hex },
+    });
+  };
+
+  const setTileBorder = (hex: string) => {
+    send({
+      type: "setTileTheme",
+      tileTheme: { ...tileTheme, faceBorder: hex },
+    });
+  };
+
+  const resetTileTheme = () => {
+    send({ type: "setTileTheme", tileTheme: DEFAULT_TILE_THEME });
   };
 
   const solidPickerValue =
@@ -194,6 +214,47 @@ export function HostPage() {
             aria-label="Цвет фона табло"
           />
           <span className="muted solid-row__hint">Выбор цвета сразу переключает табло на заливку</span>
+        </div>
+      </section>
+
+      <section className="card">
+        <h2 className="card__h">Цвета ячеек (буквы)</h2>
+        <p className="muted">
+          Лицевая сторона открытой буквы (<code className="code">.tile__face--front</code>) и обводка всех
+          граней ячейки (<code className="code">.tile__face</code>).
+        </p>
+        <label className="label" htmlFor="tile-front">
+          Заливка лицевой стороны
+        </label>
+        <div className="solid-row">
+          <input
+            id="tile-front"
+            type="color"
+            className="color-input"
+            value={tileTheme.frontFace}
+            onChange={(e) => setTileFront(e.target.value)}
+            aria-label="Цвет лицевой стороны ячейки"
+          />
+          <span className="muted solid-row__hint">Фон панели с буквой после открытия</span>
+        </div>
+        <label className="label" htmlFor="tile-border">
+          Цвет обводки ячейки
+        </label>
+        <div className="solid-row">
+          <input
+            id="tile-border"
+            type="color"
+            className="color-input"
+            value={tileTheme.faceBorder}
+            onChange={(e) => setTileBorder(e.target.value)}
+            aria-label="Цвет рамки ячейки"
+          />
+          <span className="muted solid-row__hint">Рамка закрытой и открытой ячейки</span>
+        </div>
+        <div className="row">
+          <button type="button" className="btn" onClick={resetTileTheme}>
+            Сбросить цвета ячеек
+          </button>
         </div>
       </section>
 

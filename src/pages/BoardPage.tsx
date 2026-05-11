@@ -3,6 +3,7 @@ import type { Cell, PublicState } from "../types";
 import { useGameSocket } from "../useGameSocket";
 import { Fireworks } from "../components/Fireworks";
 import { boardBackgroundToStyle } from "../boardTheme";
+import { tileThemeToCssVars } from "../tileTheme";
 
 function puzzleSolved(state: PublicState | null): boolean {
   if (!state) return false;
@@ -46,9 +47,15 @@ function LetterTile({ cell }: { cell: Extract<Cell, { kind: "letter" }> }) {
 }
 
 export function BoardPage() {
-  const { connected, phase, publicState, boardBackground } = useGameSocket();
+  const { connected, phase, publicState, boardBackground, tileTheme } = useGameSocket();
 
-  const bgStyle = useMemo(() => boardBackgroundToStyle(boardBackground), [boardBackground]);
+  const bgStyle = useMemo(
+    () => ({
+      ...boardBackgroundToStyle(boardBackground),
+      ...tileThemeToCssVars(tileTheme),
+    }),
+    [boardBackground, tileTheme],
+  );
 
   const rows = useMemo(() => (publicState ? rowLayout(publicState.cells) : []), [publicState]);
 

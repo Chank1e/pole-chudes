@@ -225,7 +225,7 @@ body {
   position: absolute;
   inset: 0;
   border-radius: 14px;
-  border: 2px solid rgba(246, 211, 101, 0.55);
+  border: 2px solid var(--tile-face-border, #f6d365);
   backface-visibility: hidden;
   display: grid;
   place-items: center;
@@ -238,7 +238,7 @@ body {
 
 .tile__face--front {
   transform: rotateY(180deg);
-  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(0, 0, 0, 0.35));
+  background: var(--tile-face-front-bg, #5b6765);
 }
 
 .tile__letter {

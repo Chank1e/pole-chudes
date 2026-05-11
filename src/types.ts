@@ -19,12 +19,19 @@ export type BoardBackground =
   | { kind: "preset"; id: string }
   | { kind: "solid"; color: string };
 
+/** Letter tile styling on /board (.tile__face--front bg + .tile__face border). */
+export type TileTheme = {
+  frontFace: string;
+  faceBorder: string;
+};
+
 export type ServerStateMessage =
   | {
       type: "state";
       phase: "idle";
       public: null;
       boardBackground: BoardBackground;
+      tileTheme: TileTheme;
       apiKey?: string;
     }
   | {
@@ -32,6 +39,7 @@ export type ServerStateMessage =
       phase: "playing";
       public: PublicState;
       boardBackground: BoardBackground;
+      tileTheme: TileTheme;
       /** Only sent to clients that registered as host (see clientHello) */
       hostPhrase?: string;
       hostStats?: { lettersTotal: number; lettersOpen: number };
@@ -45,4 +53,5 @@ export type ClientMessage =
   | { type: "setWord"; word: string }
   | { type: "resetRound" }
   | { type: "guessLetter"; letter: string }
-  | { type: "setBoardBackground"; background: BoardBackground };
+  | { type: "setBoardBackground"; background: BoardBackground }
+  | { type: "setTileTheme"; tileTheme: TileTheme };
