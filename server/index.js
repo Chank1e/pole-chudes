@@ -8,11 +8,13 @@ import process from "node:process";
 import { WebSocketServer } from "ws";
 import {
   phraseToCells,
+  phraseFromCells,
   applyGuess,
   buildPublicState,
   normalizeLetter,
 } from "./game.mjs";
 import { createStaticHandler } from "./static.mjs";
+import { normalizeBoardBackground } from "./boardTheme.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -46,40 +48,79 @@ if (!isDev) {
 
 const tryStatic = !isDev ? createStaticHandler(distDir) : null;
 
+/** @type {{ kind: 'preset'; id: string } | { kind: 'solid'; color: string }} */
+let boardBackground = { kind: "preset", id: "default" };
+
 /** @type {{ cells: import('./game.mjs').Cell[]; guessed: Set<string>; wrongGuesses: Set<string> } | null} */
 let model = null;
 
 /** @type {import('ws').WebSocket[]} */
 const sockets = [];
 
-function broadcast(obj) {
-  const data = JSON.stringify(obj);
-  for (const ws of sockets) {
-    if (ws.readyState === 1) ws.send(data);
+/**
+ * @param {import('./game.mjs').Cell[]} cells
+ */
+function letterStats(cells) {
+  let lettersTotal = 0;
+  let lettersOpen = 0;
+  for (const c of cells) {
+    if (c.kind !== "letter") continue;
+    lettersTotal++;
+    if (c.revealed) lettersOpen++;
   }
+  return { lettersTotal, lettersOpen };
 }
 
-function getPublicState() {
-  if (!model) {
-    return { phase: "idle", public: null };
+/**
+ * @param {import('ws').WebSocket} ws
+ * @param {import('./game.mjs').PublicState | undefined} [overridePublic]
+ */
+function statePayloadFor(ws, overridePublic) {
+  const idle = !model;
+  /** @type {import('./game.mjs').PublicState | null} */
+  let pub = null;
+  if (!idle && model) {
+    pub =
+      overridePublic !== undefined
+        ? overridePublic
+        : buildPublicState(
+            model.cells,
+            Array.from(model.guessed),
+            Array.from(model.wrongGuesses),
+            null,
+          );
   }
-  return {
-    phase: "playing",
-    public: buildPublicState(
-      model.cells,
-      Array.from(model.guessed),
-      Array.from(model.wrongGuesses),
-      null,
-    ),
+
+  /** @type {Record<string, unknown>} */
+  const payload = {
+    type: "state",
+    phase: idle ? "idle" : "playing",
+    public: pub,
+    boardBackground,
+    apiKey: API_KEY,
   };
+
+  if (ws.clientRole === "host" && model) {
+    payload.hostPhrase = phraseFromCells(model.cells);
+    payload.hostStats = letterStats(model.cells);
+  }
+
+  return payload;
+}
+
+function broadcastStateAll(overridePublic) {
+  for (const ws of sockets) {
+    if (ws.readyState !== 1) continue;
+    ws.send(JSON.stringify(statePayloadFor(ws, overridePublic)));
+  }
 }
 
 function sendState(ws) {
-  ws.send(JSON.stringify({ type: "state", ...getPublicState(), apiKey: API_KEY }));
+  ws.send(JSON.stringify(statePayloadFor(ws)));
 }
 
 function broadcastState() {
-  broadcast({ type: "state", ...getPublicState() });
+  broadcastStateAll(undefined);
 }
 
 /**
@@ -104,7 +145,7 @@ function guessFromString(raw) {
     next.lastFeedback,
   );
 
-  broadcast({ type: "state", phase: "playing", public: pub });
+  broadcastStateAll(pub);
   return { ok: true, feedback: next.lastFeedback };
 }
 
@@ -151,7 +192,16 @@ const server = http.createServer(async (req, res) => {
 
 const wss = new WebSocketServer({ server });
 
-wss.on("connection", (ws) => {
+wss.on("connection", (ws, req) => {
+  let clientRole = "board";
+  try {
+    const u = new URL(req.url || "/", "http://127.0.0.1");
+    if (u.searchParams.get("role") === "host") clientRole = "host";
+  } catch {
+    /* ignore */
+  }
+  ws.clientRole = clientRole;
+
   sockets.push(ws);
   sendState(ws);
 
@@ -182,7 +232,18 @@ wss.on("connection", (ws) => {
 
     if (msg.type === "resetRound") {
       model = null;
-      broadcast({ type: "state", phase: "idle", public: null });
+      broadcastStateAll(undefined);
+      return;
+    }
+
+    if (msg.type === "setBoardBackground" && msg.background !== undefined) {
+      const next = normalizeBoardBackground(msg.background);
+      if (!next) {
+        ws.send(JSON.stringify({ type: "error", message: "bad_background" }));
+        return;
+      }
+      boardBackground = next;
+      broadcastStateAll(undefined);
       return;
     }
 

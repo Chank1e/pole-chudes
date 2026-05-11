@@ -1,31 +1,52 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { ClientMessage, PublicState, ServerErrorMessage, ServerStateMessage } from "./types";
+import type { BoardBackground, ClientMessage, PublicState, ServerErrorMessage, ServerStateMessage } from "./types";
+import { DEFAULT_BOARD_BACKGROUND } from "./boardTheme";
 
-function wsUrlFromLocation(): string {
+export type SocketRole = "host" | "board";
+
+function wsUrlFromLocation(role: SocketRole): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  return `${proto}//${window.location.host}/ws`;
+  const base = `${proto}//${window.location.host}/ws`;
+  return role === "host" ? `${base}?role=host` : base;
 }
 
-export function useGameSocket() {
+export function useGameSocket(role: SocketRole = "board") {
   const [connected, setConnected] = useState(false);
   const [phase, setPhase] = useState<"idle" | "playing">("idle");
   const [publicState, setPublicState] = useState<PublicState | null>(null);
+  const [boardBackground, setBoardBackground] = useState<BoardBackground>(DEFAULT_BOARD_BACKGROUND);
   const [apiKey, setApiKey] = useState<string | null>(null);
   const [lastError, setLastError] = useState<string | null>(null);
+  const [hostPhrase, setHostPhrase] = useState<string | null>(null);
+  const [hostStats, setHostStats] = useState<{ lettersTotal: number; lettersOpen: number } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
 
-  const applyMessage = useCallback((msg: ServerStateMessage | ServerErrorMessage) => {
-    if (msg.type === "error") {
-      setLastError(msg.message);
-      return;
-    }
-    if (msg.type === "state") {
-      setLastError(null);
-      setPhase(msg.phase);
-      setPublicState(msg.public);
-      if (typeof msg.apiKey === "string") setApiKey(msg.apiKey);
-    }
-  }, []);
+  const applyMessage = useCallback(
+    (msg: ServerStateMessage | ServerErrorMessage) => {
+      if (msg.type === "error") {
+        setLastError(msg.message);
+        return;
+      }
+      if (msg.type === "state") {
+        setLastError(null);
+        setPhase(msg.phase);
+        setPublicState(msg.public);
+        setBoardBackground(msg.boardBackground ?? DEFAULT_BOARD_BACKGROUND);
+        if (typeof msg.apiKey === "string") setApiKey(msg.apiKey);
+
+        if (role === "host") {
+          if (msg.phase === "idle") {
+            setHostPhrase(null);
+            setHostStats(null);
+          } else {
+            setHostPhrase(msg.hostPhrase ?? null);
+            setHostStats(msg.hostStats ?? null);
+          }
+        }
+      }
+    },
+    [role],
+  );
 
   useEffect(() => {
     let stopped = false;
@@ -34,7 +55,7 @@ export function useGameSocket() {
 
     const connect = () => {
       if (stopped) return;
-      const url = wsUrlFromLocation();
+      const url = wsUrlFromLocation(role);
       const ws = new WebSocket(url);
       wsRef.current = ws;
 
@@ -69,7 +90,7 @@ export function useGameSocket() {
       wsRef.current?.close();
       wsRef.current = null;
     };
-  }, [applyMessage]);
+  }, [applyMessage, role]);
 
   const send = useMemo(() => {
     return (msg: ClientMessage) => {
@@ -79,5 +100,15 @@ export function useGameSocket() {
     };
   }, []);
 
-  return { connected, phase, publicState, apiKey, lastError, send };
+  return {
+    connected,
+    phase,
+    publicState,
+    boardBackground,
+    apiKey,
+    lastError,
+    send,
+    hostPhrase,
+    hostStats,
+  };
 }

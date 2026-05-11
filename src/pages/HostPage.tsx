@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { useGameSocket } from "../useGameSocket";
 import { normalizeLetter } from "../ru";
+import { BOARD_PRESET_CSS, BOARD_PRESET_META } from "../boardTheme";
 
 const RU_LETTERS = [
   "Й",
@@ -39,7 +40,17 @@ const RU_LETTERS = [
 ];
 
 export function HostPage() {
-  const { connected, phase, publicState, apiKey, lastError, send } = useGameSocket();
+  const {
+    connected,
+    phase,
+    publicState,
+    boardBackground,
+    apiKey,
+    lastError,
+    send,
+    hostPhrase,
+    hostStats,
+  } = useGameSocket("host");
   const [phrase, setPhrase] = useState("");
   const [toast, setToast] = useState<string | null>(null);
 
@@ -72,6 +83,17 @@ export function HostPage() {
     send({ type: "guessLetter", letter });
   };
 
+  const pickPreset = (id: string) => {
+    send({ type: "setBoardBackground", background: { kind: "preset", id } });
+  };
+
+  const applySolidColor = (hex: string) => {
+    send({ type: "setBoardBackground", background: { kind: "solid", color: hex } });
+  };
+
+  const solidPickerValue =
+    boardBackground.kind === "solid" ? boardBackground.color : "#070a12";
+
   return (
     <div className="host">
       <header className="host__header">
@@ -86,6 +108,29 @@ export function HostPage() {
 
       {toast && <div className="host__toast">{toast}</div>}
       {lastError && <div className="host__warn">Ошибка: {lastError}</div>}
+
+      <section className={`card host-live ${phase === "playing" ? "host-live--active" : ""}`}>
+        <div className="host-live__top">
+          <span className={`host-live__badge ${phase === "playing" ? "host-live__badge--on" : ""}`}>
+            {phase === "playing" ? "Раунд активен" : "Раунда нет"}
+          </span>
+          {phase === "playing" && hostStats && (
+            <span className="host-live__progress">
+              Букв открыто: {hostStats.lettersOpen} / {hostStats.lettersTotal}
+            </span>
+          )}
+        </div>
+        {phase === "playing" && hostPhrase ? (
+          <div className="host-phrase">
+            <div className="label">Фраза на табло</div>
+            <div className="host-phrase__box">{hostPhrase}</div>
+          </div>
+        ) : (
+          <p className="muted host-live__hint">
+            После «Запустить табло» здесь будет видна загаданная фраза и счётчик открытых букв.
+          </p>
+        )}
+      </section>
 
       <section className="card">
         <h2 className="card__h">Новый раунд</h2>
@@ -111,6 +156,45 @@ export function HostPage() {
         <p className="muted">
           Пробелы и дефисы разделяют «слова» на строке табло. Пунктуация (кроме дефиса) игнорируется.
         </p>
+      </section>
+
+      <section className="card">
+        <h2 className="card__h">Фон табло</h2>
+        <p className="muted">Меняется на странице /board в OBS. Градиенты или один цвет.</p>
+        <div className="preset-grid" role="list">
+          {BOARD_PRESET_META.map(({ id, label }) => {
+            const css = BOARD_PRESET_CSS[id] ?? BOARD_PRESET_CSS.default;
+            const active =
+              boardBackground.kind === "preset" && boardBackground.id === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                role="listitem"
+                className={`preset-swatch ${active ? "preset-swatch--active" : ""}`}
+                onClick={() => pickPreset(id)}
+                title={label}
+              >
+                <span className="preset-swatch__fill" style={{ background: css }} />
+                <span className="preset-swatch__label">{label}</span>
+              </button>
+            );
+          })}
+        </div>
+        <label className="label" htmlFor="board-solid">
+          Свой цвет
+        </label>
+        <div className="solid-row">
+          <input
+            id="board-solid"
+            type="color"
+            className="color-input"
+            value={solidPickerValue}
+            onChange={(e) => applySolidColor(e.target.value)}
+            aria-label="Цвет фона табло"
+          />
+          <span className="muted solid-row__hint">Выбор цвета сразу переключает табло на заливку</span>
+        </div>
       </section>
 
       <section className="card">

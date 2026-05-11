@@ -14,13 +14,34 @@ export type PublicState = {
   lastFeedback: Feedback | null;
 };
 
+/** Synced to OBS board — server validates presets / hex color. */
+export type BoardBackground =
+  | { kind: "preset"; id: string }
+  | { kind: "solid"; color: string };
+
 export type ServerStateMessage =
-  | { type: "state"; phase: "idle"; public: null; apiKey?: string }
-  | { type: "state"; phase: "playing"; public: PublicState; apiKey?: string };
+  | {
+      type: "state";
+      phase: "idle";
+      public: null;
+      boardBackground: BoardBackground;
+      apiKey?: string;
+    }
+  | {
+      type: "state";
+      phase: "playing";
+      public: PublicState;
+      boardBackground: BoardBackground;
+      /** Only sent to WebSocket clients that connect with ?role=host */
+      hostPhrase?: string;
+      hostStats?: { lettersTotal: number; lettersOpen: number };
+      apiKey?: string;
+    };
 
 export type ServerErrorMessage = { type: "error"; message: string };
 
 export type ClientMessage =
   | { type: "setWord"; word: string }
   | { type: "resetRound" }
-  | { type: "guessLetter"; letter: string };
+  | { type: "guessLetter"; letter: string }
+  | { type: "setBoardBackground"; background: BoardBackground };

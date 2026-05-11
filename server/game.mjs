@@ -34,6 +34,15 @@ export function normalizeLetter(ch) {
   return u === "Ё" ? "Е" : u;
 }
 
+export function phraseFromCells(cells) {
+  let out = "";
+  for (const c of cells) {
+    if (c.kind === "space") out += " ";
+    else out += c.ch;
+  }
+  return out;
+}
+
 /**
  * @param {string} phrase
  * @returns {Cell[]}

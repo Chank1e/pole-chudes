@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { Cell, PublicState } from "../types";
 import { useGameSocket } from "../useGameSocket";
 import { Fireworks } from "../components/Fireworks";
+import { boardBackgroundToStyle } from "../boardTheme";
 
 function puzzleSolved(state: PublicState | null): boolean {
   if (!state) return false;
@@ -45,7 +46,9 @@ function LetterTile({ cell }: { cell: Extract<Cell, { kind: "letter" }> }) {
 }
 
 export function BoardPage() {
-  const { connected, phase, publicState } = useGameSocket();
+  const { connected, phase, publicState, boardBackground } = useGameSocket();
+
+  const bgStyle = useMemo(() => boardBackgroundToStyle(boardBackground), [boardBackground]);
 
   const rows = useMemo(() => (publicState ? rowLayout(publicState.cells) : []), [publicState]);
 
@@ -83,7 +86,8 @@ export function BoardPage() {
   }, [publicState?.lastFeedback]);
 
   return (
-    <div className="board">
+    <div className="board-root" style={bgStyle}>
+      <div className="board">
       {celebrate && (
         <Fireworks
           onDone={() => {
@@ -140,6 +144,7 @@ export function BoardPage() {
           </div>
         </div>
       )}
+    </div>
     </div>
   );
 }
