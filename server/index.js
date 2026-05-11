@@ -1,4 +1,5 @@
 import http from "node:http";
+import { existsSync } from "node:fs";
 import { randomBytes } from "node:crypto";
 import { spawn } from "node:child_process";
 import { fileURLToPath } from "node:url";
@@ -11,12 +12,39 @@ import {
   buildPublicState,
   normalizeLetter,
 } from "./game.mjs";
+import { createStaticHandler } from "./static.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
+const distDir = path.join(root, "dist");
 
-const PORT = Number(process.env.POLE_SYNC_PORT || 3847);
+const isDev = process.argv.includes("dev");
+
+function resolveListenPort() {
+  const raw = process.env.PORT ?? process.env.POLE_PORT;
+  if (raw !== undefined && raw !== "") {
+    const n = Number(raw);
+    if (Number.isInteger(n) && n > 0 && n < 65536) return n;
+    // eslint-disable-next-line no-console
+    console.warn(`[pole-chudes] invalid PORT "${raw}", using default`);
+  }
+  return isDev ? 3847 : 8080;
+}
+
+const PORT = resolveListenPort();
+const HOST = process.env.POLE_HOST || (isDev ? "127.0.0.1" : "0.0.0.0");
+
 const API_KEY = process.env.POLE_API_KEY || randomBytes(12).toString("hex");
+
+if (!isDev) {
+  if (!existsSync(path.join(distDir, "index.html"))) {
+    // eslint-disable-next-line no-console
+    console.error("[pole-chudes] dist/index.html not found. Run: npm run build");
+    process.exit(1);
+  }
+}
+
+const tryStatic = !isDev ? createStaticHandler(distDir) : null;
 
 /** @type {{ cells: import('./game.mjs').Cell[]; guessed: Set<string>; wrongGuesses: Set<string> } | null} */
 let model = null;
@@ -80,7 +108,11 @@ function guessFromString(raw) {
   return { ok: true, feedback: next.lastFeedback };
 }
 
-const server = http.createServer((req, res) => {
+const server = http.createServer(async (req, res) => {
+  if (String(req.headers.upgrade || "").toLowerCase() === "websocket") {
+    return;
+  }
+
   const url = new URL(req.url || "/", `http://${req.headers.host}`);
 
   if (req.method === "OPTIONS") {
@@ -106,6 +138,11 @@ const server = http.createServer((req, res) => {
     res.writeHead(200, { "Content-Type": "application/json; charset=utf-8" });
     res.end(JSON.stringify(result));
     return;
+  }
+
+  if (tryStatic) {
+    const handled = await tryStatic(req, res, url);
+    if (handled) return;
   }
 
   res.writeHead(404);
@@ -161,25 +198,45 @@ wss.on("connection", (ws) => {
   });
 });
 
-server.listen(PORT, () => {
+server.listen(PORT, HOST, () => {
   // eslint-disable-next-line no-console
-  console.log(`[pole-chudes] sync+wss on http://127.0.0.1:${PORT}`);
+  console.log(`[pole-chudes] listening on ${HOST}:${PORT} — static UI, /api/guess, WebSocket /ws`);
+  if (!isDev) {
+    // eslint-disable-next-line no-console
+    console.log(`[pole-chudes] static root: ${distDir}`);
+    // eslint-disable-next-line no-console
+    console.log(`[pole-chudes] board: http://127.0.0.1:${PORT}/board  host: http://127.0.0.1:${PORT}/host`);
+  } else {
+    // eslint-disable-next-line no-console
+    console.log(`[pole-chudes] dev: Vite UI http://127.0.0.1:5173/ (API/WS proxied to this port)`);
+  }
   // eslint-disable-next-line no-console
   console.log(`[pole-chudes] API key (for Nightbot/customapi): ${API_KEY}`);
 });
 
-const vite = spawn("npx", ["vite", "--host", "0.0.0.0", "--port", "5173"], {
-  cwd: root,
-  stdio: "inherit",
-  shell: true,
-  env: { ...process.env },
-});
+/** @type {import('node:child_process').ChildProcess | null} */
+let vite = null;
+
+if (isDev) {
+  vite = spawn("npx", ["vite", "--host", "0.0.0.0", "--port", "5173"], {
+    cwd: root,
+    stdio: "inherit",
+    shell: true,
+    env: { ...process.env },
+  });
+
+  vite.on("exit", (code) => {
+    if (code && code !== 0) process.exit(code ?? 1);
+  });
+}
 
 function shutdown() {
-  try {
-    vite.kill("SIGTERM");
-  } catch {
-    /* ignore */
+  if (vite) {
+    try {
+      vite.kill("SIGTERM");
+    } catch {
+      /* ignore */
+    }
   }
   try {
     server.close();
@@ -191,6 +248,3 @@ function shutdown() {
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
-vite.on("exit", (code) => {
-  if (code && code !== 0) process.exit(code ?? 1);
-});
