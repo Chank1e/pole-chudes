@@ -226,7 +226,6 @@ body {
   inset: 0;
   border-radius: 14px;
   border: 2px solid var(--tile-face-border, #f6d365);
-  backface-visibility: hidden;
   display: grid;
   place-items: center;
   background: rgba(0, 0, 0, 0.35);
