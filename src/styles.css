@@ -34,6 +34,90 @@ body {
   min-height: 100%;
 }
 
+.fireworks {
+  position: fixed;
+  inset: 0;
+  z-index: 300;
+  pointer-events: none;
+}
+
+.win-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 301;
+  pointer-events: none;
+  display: grid;
+  place-content: center;
+  text-align: center;
+  padding: 24px;
+  animation: win-overlay-anim 9s ease-out forwards;
+}
+
+.win-overlay__glow {
+  position: absolute;
+  inset: -20%;
+  background: radial-gradient(
+    closest-side,
+    rgba(246, 211, 101, 0.35),
+    rgba(253, 160, 133, 0.12) 42%,
+    transparent 70%
+  );
+  filter: blur(2px);
+  opacity: 0.9;
+}
+
+.win-overlay__title {
+  position: relative;
+  font-weight: 900;
+  font-size: clamp(34px, 7vw, 72px);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  background: linear-gradient(120deg, #fff6cf, var(--gold), #fff, var(--gold2));
+  background-size: 220% 220%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 10px 30px rgba(0, 0, 0, 0.55));
+  animation: win-shimmer 2.4s ease-in-out infinite;
+}
+
+.win-overlay__sub {
+  position: relative;
+  margin-top: 10px;
+  font-weight: 700;
+  font-size: clamp(14px, 2.4vw, 20px);
+  color: rgba(255, 255, 255, 0.82);
+  text-shadow: 0 8px 30px rgba(0, 0, 0, 0.55);
+}
+
+@keyframes win-overlay-anim {
+  0% {
+    opacity: 0;
+    transform: scale(0.94);
+  }
+  10% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.02);
+  }
+}
+
+@keyframes win-shimmer {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+
 .board {
   min-height: 100vh;
   padding: 28px 28px 40px;

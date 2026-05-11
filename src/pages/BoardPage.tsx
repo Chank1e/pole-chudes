@@ -1,6 +1,14 @@
-import { useEffect, useMemo, useRef } from "react";
-import type { Cell } from "../types";
+import { useEffect, useMemo, useRef, useState } from "react";
+import type { Cell, PublicState } from "../types";
 import { useGameSocket } from "../useGameSocket";
+import { Fireworks } from "../components/Fireworks";
+
+function puzzleSolved(state: PublicState | null): boolean {
+  if (!state) return false;
+  const letters = state.cells.filter((c): c is Extract<Cell, { kind: "letter" }> => c.kind === "letter");
+  if (letters.length === 0) return false;
+  return letters.every((c) => c.revealed);
+}
 
 function rowLayout(cells: Cell[]): Cell[][] {
   const rows: Cell[][] = [];
@@ -42,6 +50,21 @@ export function BoardPage() {
   const rows = useMemo(() => (publicState ? rowLayout(publicState.cells) : []), [publicState]);
 
   const feedbackRef = useRef<HTMLDivElement>(null);
+  const wasSolvedRef = useRef(false);
+  const [celebrate, setCelebrate] = useState(false);
+
+  useEffect(() => {
+    if (phase === "idle") {
+      wasSolvedRef.current = false;
+      setCelebrate(false);
+      return;
+    }
+    const solved = phase === "playing" && puzzleSolved(publicState);
+    if (solved && !wasSolvedRef.current) {
+      setCelebrate(true);
+    }
+    wasSolvedRef.current = !!solved;
+  }, [phase, publicState]);
 
   useEffect(() => {
     const fb = publicState?.lastFeedback;
@@ -61,6 +84,21 @@ export function BoardPage() {
 
   return (
     <div className="board">
+      {celebrate && (
+        <Fireworks
+          onDone={() => {
+            setCelebrate(false);
+          }}
+        />
+      )}
+      {celebrate && (
+        <div className="win-overlay" aria-live="polite">
+          <div className="win-overlay__glow" />
+          <div className="win-overlay__title">Победа!</div>
+          <div className="win-overlay__sub">Слово открыто полностью</div>
+        </div>
+      )}
+
       <div className="board__header">
         <div className="board__title">Поле чудес</div>
         <div className={`board__pill ${connected ? "board__pill--ok" : "board__pill--bad"}`}>
