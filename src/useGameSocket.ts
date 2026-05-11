@@ -4,10 +4,9 @@ import { DEFAULT_BOARD_BACKGROUND } from "./boardTheme";
 
 export type SocketRole = "host" | "board";
 
-function wsUrlFromLocation(role: SocketRole): string {
+function wsUrlFromLocation(): string {
   const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const base = `${proto}//${window.location.host}/ws`;
-  return role === "host" ? `${base}?role=host` : base;
+  return `${proto}//${window.location.host}/ws`;
 }
 
 export function useGameSocket(role: SocketRole = "board") {
@@ -20,6 +19,7 @@ export function useGameSocket(role: SocketRole = "board") {
   const [hostPhrase, setHostPhrase] = useState<string | null>(null);
   const [hostStats, setHostStats] = useState<{ lettersTotal: number; lettersOpen: number } | null>(null);
   const wsRef = useRef<WebSocket | null>(null);
+  const pendingRef = useRef<ClientMessage[]>([]);
 
   const applyMessage = useCallback(
     (msg: ServerStateMessage | ServerErrorMessage) => {
@@ -55,13 +55,23 @@ export function useGameSocket(role: SocketRole = "board") {
 
     const connect = () => {
       if (stopped) return;
-      const url = wsUrlFromLocation(role);
+      const url = wsUrlFromLocation();
       const ws = new WebSocket(url);
       wsRef.current = ws;
+
+      const flushPending = () => {
+        const q = pendingRef.current;
+        pendingRef.current = [];
+        for (const m of q) {
+          ws.send(JSON.stringify(m));
+        }
+      };
 
       ws.onopen = () => {
         attempt = 0;
         setConnected(true);
+        ws.send(JSON.stringify({ type: "clientHello", role }));
+        flushPending();
       };
 
       ws.onclose = () => {
@@ -95,8 +105,13 @@ export function useGameSocket(role: SocketRole = "board") {
   const send = useMemo(() => {
     return (msg: ClientMessage) => {
       const ws = wsRef.current;
-      if (!ws || ws.readyState !== WebSocket.OPEN) return;
-      ws.send(JSON.stringify(msg));
+      if (ws && ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify(msg));
+        return;
+      }
+      if (pendingRef.current.length < 64) {
+        pendingRef.current.push(msg);
+      }
     };
   }, []);
 

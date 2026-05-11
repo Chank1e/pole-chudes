@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { type RefObject, useEffect, useRef } from "react";
 
 type Particle = {
   x: number;
@@ -75,19 +75,23 @@ function ring(particles: Particle[], cx: number, cy: number, n: number, speed: n
 }
 
 type Props = {
+  anchorRef: RefObject<HTMLDivElement | null>;
   onDone?: () => void;
 };
 
-export function Fireworks({ onDone }: Props) {
+export function Fireworks({ anchorRef, onDone }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const onDoneRef = useRef(onDone);
   onDoneRef.current = onDone;
 
   useEffect(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    const anchor = anchorRef.current;
+    if (!canvas || !anchor) return;
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
+
+    const bounds = { w: Math.max(1, anchor.clientWidth), h: Math.max(1, anchor.clientHeight) };
 
     const particles: Particle[] = [];
     let raf = 0;
@@ -98,9 +102,13 @@ export function Fireworks({ onDone }: Props) {
     let burstIndex = 0;
 
     const resize = () => {
+      const el = anchorRef.current;
+      if (!el || !canvas) return;
+      bounds.w = Math.max(1, el.clientWidth);
+      bounds.h = Math.max(1, el.clientHeight);
       const dpr = Math.min(2, window.devicePixelRatio || 1);
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const w = bounds.w;
+      const h = bounds.h;
       canvas.width = Math.floor(w * dpr);
       canvas.height = Math.floor(h * dpr);
       canvas.style.width = `${w}px`;
@@ -109,24 +117,28 @@ export function Fireworks({ onDone }: Props) {
     };
 
     resize();
-    window.addEventListener("resize", resize);
+    const ro = new ResizeObserver(() => resize());
+    ro.observe(anchor);
 
     const scheduleBurst = (t: number) => {
-      const w = window.innerWidth;
-      const h = window.innerHeight;
+      const w = bounds.w;
+      const h = bounds.h;
       const cx = w * (0.15 + Math.random() * 0.7);
       const cy = h * (0.12 + Math.random() * 0.45);
+      const scale = Math.min(1.2, Math.max(0.55, Math.min(w, h) / 420));
+      const count = Math.round((72 + Math.floor(Math.random() * 40)) * scale);
+      const pow = (5 + Math.random() * 4) * scale;
 
-      burst(particles, cx, cy, 72 + Math.floor(Math.random() * 40), 5 + Math.random() * 4);
-      ring(particles, cx, cy, 28, 2.5 + Math.random() * 2);
+      burst(particles, cx, cy, Math.max(24, count), Math.max(2.5, pow));
+      ring(particles, cx, cy, Math.max(16, Math.floor(28 * scale)), (2.5 + Math.random() * 2) * scale);
 
       if (burstIndex % 3 === 0) {
         burst(
           particles,
-          cx + (Math.random() - 0.5) * 80,
-          cy + (Math.random() - 0.5) * 60,
-          48,
-          3.5,
+          cx + (Math.random() - 0.5) * Math.min(80, w * 0.2),
+          cy + (Math.random() - 0.5) * Math.min(60, h * 0.15),
+          Math.max(20, Math.floor(48 * scale)),
+          Math.max(2, 3.5 * scale),
         );
       }
       burstIndex += 1;
@@ -143,8 +155,10 @@ export function Fireworks({ onDone }: Props) {
         scheduleBurst(elapsed);
       }
 
+      const w = bounds.w;
+      const h = bounds.h;
       ctx.fillStyle = "rgba(7, 10, 18, 0.14)";
-      ctx.fillRect(0, 0, window.innerWidth, window.innerHeight);
+      ctx.fillRect(0, 0, w, h);
 
       const g = 0.11 * dt;
       const drag = Math.pow(0.985, dt);
@@ -177,7 +191,7 @@ export function Fireworks({ onDone }: Props) {
       if (elapsed < duration) {
         raf = requestAnimationFrame(step);
       } else {
-        window.removeEventListener("resize", resize);
+        ro.disconnect();
         onDoneRef.current?.();
       }
     };
@@ -187,9 +201,9 @@ export function Fireworks({ onDone }: Props) {
 
     return () => {
       cancelAnimationFrame(raf);
-      window.removeEventListener("resize", resize);
+      ro.disconnect();
     };
-  }, []);
+  }, [anchorRef]);
 
   return <canvas ref={canvasRef} className="fireworks" aria-hidden />;
 }

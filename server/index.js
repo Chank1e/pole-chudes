@@ -215,6 +215,12 @@ wss.on("connection", (ws, req) => {
 
     if (!msg || typeof msg !== "object") return;
 
+    if (msg.type === "clientHello") {
+      ws.clientRole = msg.role === "host" ? "host" : "board";
+      sendState(ws);
+      return;
+    }
+
     if (msg.type === "setWord" && typeof msg.word === "string") {
       const cells = phraseToCells(msg.word);
       if (!cells.some((c) => c.kind === "letter")) {

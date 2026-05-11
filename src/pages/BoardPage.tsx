@@ -53,6 +53,7 @@ export function BoardPage() {
   const rows = useMemo(() => (publicState ? rowLayout(publicState.cells) : []), [publicState]);
 
   const feedbackRef = useRef<HTMLDivElement>(null);
+  const playfieldRef = useRef<HTMLDivElement>(null);
   const wasSolvedRef = useRef(false);
   const [celebrate, setCelebrate] = useState(false);
 
@@ -88,21 +89,6 @@ export function BoardPage() {
   return (
     <div className="board-root" style={bgStyle}>
       <div className="board">
-      {celebrate && (
-        <Fireworks
-          onDone={() => {
-            setCelebrate(false);
-          }}
-        />
-      )}
-      {celebrate && (
-        <div className="win-overlay" aria-live="polite">
-          <div className="win-overlay__glow" />
-          <div className="win-overlay__title">Победа!</div>
-          <div className="win-overlay__sub">Слово открыто полностью</div>
-        </div>
-      )}
-
       <div className="board__header">
         <div className="board__title">Поле чудес</div>
         <div className={`board__pill ${connected ? "board__pill--ok" : "board__pill--bad"}`}>
@@ -117,14 +103,33 @@ export function BoardPage() {
       {phase === "idle" && <div className="board__hint">Ведущий ещё не задал фразу</div>}
 
       {phase === "playing" && (
-        <div className="board__grid" aria-live="polite">
-          {rows.map((r, i) => (
-            <div key={i} className="board__row">
-              {r.map((c, j) =>
-                c.kind === "letter" ? <LetterTile key={`${i}-${j}`} cell={c} /> : null,
-              )}
-            </div>
-          ))}
+        <div className="board__playfield" ref={playfieldRef}>
+          {celebrate && (
+            <>
+              <Fireworks
+                anchorRef={playfieldRef}
+                onDone={() => {
+                  setCelebrate(false);
+                }}
+              />
+              <div className="win-overlay" aria-live="polite">
+                <div className="win-overlay__glow" />
+                <div>
+                  <div className="win-overlay__title">Победа!</div>
+                  <div className="win-overlay__sub">Слово открыто полностью</div>
+                </div>
+              </div>
+            </>
+          )}
+          <div className="board__grid" aria-live="polite">
+            {rows.map((r, i) => (
+              <div key={i} className="board__row">
+                {r.map((c, j) =>
+                  c.kind === "letter" ? <LetterTile key={`${i}-${j}`} cell={c} /> : null,
+                )}
+              </div>
+            ))}
+          </div>
         </div>
       )}
 

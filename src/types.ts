@@ -32,7 +32,7 @@ export type ServerStateMessage =
       phase: "playing";
       public: PublicState;
       boardBackground: BoardBackground;
-      /** Only sent to WebSocket clients that connect with ?role=host */
+      /** Only sent to clients that registered as host (see clientHello) */
       hostPhrase?: string;
       hostStats?: { lettersTotal: number; lettersOpen: number };
       apiKey?: string;
@@ -41,6 +41,7 @@ export type ServerStateMessage =
 export type ServerErrorMessage = { type: "error"; message: string };
 
 export type ClientMessage =
+  | { type: "clientHello"; role: "host" | "board" }
   | { type: "setWord"; word: string }
   | { type: "resetRound" }
   | { type: "guessLetter"; letter: string }
