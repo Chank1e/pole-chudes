@@ -19,77 +19,75 @@ type Particle = {
 };
 
 type Props = {
-  anchorRef: RefObject<HTMLDivElement | null>;
-  /** Normalized spawn origin inside stage (0–1). */
+  /** Контейнер с overflow:hidden — частицы не выходят за сейф */
+  clipRef: RefObject<HTMLDivElement | null>;
   originX?: number;
   originY?: number;
   active: boolean;
 };
 
-const CONFETTI_HUES = [45, 330, 200, 140, 280, 15, 185];
+/** Без зелёного — не бить по хромакею #00ff00 */
+const CONFETTI_HUES = [45, 330, 200, 280, 15, 185, 25, 300];
 
 function spawnFromPile(
   particles: Particle[],
   ox: number,
   oy: number,
+  w: number,
+  h: number,
   gems: number,
   confetti: number,
 ) {
+  const spreadX = w * 0.35;
+  const spreadY = h * 0.12;
+
   for (let i = 0; i < gems; i++) {
-    const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.6;
-    const spd = 5 + Math.random() * 11;
+    const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.2;
+    const spd = 2.5 + Math.random() * 5;
     particles.push({
       kind: "diamond",
-      x: ox + (Math.random() - 0.5) * 36,
-      y: oy + (Math.random() - 0.5) * 20,
+      x: ox + (Math.random() - 0.5) * spreadX,
+      y: oy + (Math.random() - 0.5) * spreadY,
       vx: Math.cos(ang) * spd,
-      vy: Math.sin(ang) * spd - 3,
+      vy: Math.sin(ang) * spd - 2,
       rot: Math.random() * Math.PI,
-      vr: (Math.random() - 0.5) * 0.22,
-      w: 7 + Math.random() * 12,
-      h: 7 + Math.random() * 12,
+      vr: (Math.random() - 0.5) * 0.18,
+      w: 5 + Math.random() * 9,
+      h: 5 + Math.random() * 9,
       hue: 185 + Math.random() * 50,
       sat: 90 + Math.random() * 10,
       life: 1,
-      decay: 0.0028 + Math.random() * 0.002,
+      decay: 0.004 + Math.random() * 0.003,
     });
   }
   for (let i = 0; i < confetti; i++) {
-    const ang = (Math.random() - 0.5) * Math.PI * 1.35 - Math.PI / 2;
-    const spd = 6 + Math.random() * 14;
+    const ang = -Math.PI / 2 + (Math.random() - 0.5) * 1.1;
+    const spd = 3 + Math.random() * 6;
     particles.push({
       kind: "confetti",
-      x: ox + (Math.random() - 0.5) * 48,
-      y: oy + (Math.random() - 0.5) * 24,
+      x: ox + (Math.random() - 0.5) * spreadX,
+      y: oy + (Math.random() - 0.5) * spreadY,
       vx: Math.cos(ang) * spd,
-      vy: Math.sin(ang) * spd - 4,
+      vy: Math.sin(ang) * spd - 2.5,
       rot: Math.random() * Math.PI,
-      vr: (Math.random() - 0.5) * 0.35,
-      w: 5 + Math.random() * 8,
-      h: 8 + Math.random() * 14,
+      vr: (Math.random() - 0.5) * 0.28,
+      w: 4 + Math.random() * 6,
+      h: 6 + Math.random() * 10,
       hue: CONFETTI_HUES[Math.floor(Math.random() * CONFETTI_HUES.length)]!,
       sat: 85 + Math.random() * 15,
       life: 1,
-      decay: 0.003 + Math.random() * 0.0025,
+      decay: 0.0045 + Math.random() * 0.003,
     });
   }
 }
 
-function drawDiamond(
-  ctx: CanvasRenderingContext2D,
-  p: Particle,
-  a: number,
-) {
+function drawDiamond(ctx: CanvasRenderingContext2D, p: Particle, a: number) {
   const s = p.w;
   ctx.save();
   ctx.translate(p.x, p.y);
   ctx.rotate(p.rot);
   ctx.globalAlpha = a;
-  const grad = ctx.createLinearGradient(-s, -s, s, s);
-  grad.addColorStop(0, `hsla(${p.hue}, ${p.sat}%, 78%, 1)`);
-  grad.addColorStop(0.45, `hsla(${p.hue + 20}, 100%, 92%, 1)`);
-  grad.addColorStop(1, `hsla(${p.hue + 8}, ${p.sat}%, 48%, 1)`);
-  ctx.fillStyle = grad;
+  ctx.fillStyle = `hsl(${p.hue}, ${p.sat}%, 62%)`;
   ctx.beginPath();
   ctx.moveTo(0, -s);
   ctx.lineTo(s * 0.75, 0);
@@ -97,9 +95,8 @@ function drawDiamond(
   ctx.lineTo(-s * 0.75, 0);
   ctx.closePath();
   ctx.fill();
-  ctx.strokeStyle = `hsla(${p.hue}, 100%, 98%, ${0.45 * a})`;
-  ctx.lineWidth = 1.1;
-  ctx.stroke();
+  ctx.fillStyle = `hsla(${p.hue}, 100%, 90%, ${0.5 * a})`;
+  ctx.fillRect(-s * 0.2, -s * 0.55, s * 0.4, s * 0.35);
   ctx.restore();
 }
 
@@ -108,17 +105,15 @@ function drawConfetti(ctx: CanvasRenderingContext2D, p: Particle, a: number) {
   ctx.translate(p.x, p.y);
   ctx.rotate(p.rot);
   ctx.globalAlpha = a * 0.95;
-  ctx.fillStyle = `hsla(${p.hue}, ${p.sat}%, 58%, 1)`;
+  ctx.fillStyle = `hsl(${p.hue}, ${p.sat}%, 52%)`;
   ctx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h);
-  ctx.fillStyle = `hsla(${p.hue}, 100%, 82%, ${0.35 * a})`;
-  ctx.fillRect(-p.w / 4, -p.h / 4, p.w / 2, p.h / 3);
   ctx.restore();
 }
 
 export function SafeTreasureBurst({
-  anchorRef,
+  clipRef,
   originX = 0.5,
-  originY = 0.52,
+  originY = 0.72,
   active,
 }: Props) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -126,8 +121,8 @@ export function SafeTreasureBurst({
   useEffect(() => {
     if (!active) return;
     const canvas = canvasRef.current;
-    const anchor = anchorRef.current;
-    if (!canvas || !anchor) return;
+    const clipEl = clipRef.current;
+    if (!canvas || !clipEl) return;
     const ctx = canvas.getContext("2d", { alpha: true });
     if (!ctx) return;
 
@@ -141,7 +136,7 @@ export function SafeTreasureBurst({
     let oy = 0;
 
     const resize = () => {
-      const el = anchorRef.current;
+      const el = clipRef.current;
       if (!el || !canvas) return;
       bounds.w = Math.max(1, el.clientWidth);
       bounds.h = Math.max(1, el.clientHeight);
@@ -157,12 +152,12 @@ export function SafeTreasureBurst({
 
     resize();
     const ro = new ResizeObserver(() => resize());
-    ro.observe(anchor);
+    ro.observe(clipEl);
 
-    const burst = () => spawnFromPile(particles, ox, oy, 22, 28);
+    const burst = () => spawnFromPile(particles, ox, oy, bounds.w, bounds.h, 16, 20);
     burst();
-    setTimeout(burst, 400);
-    setTimeout(burst, 900);
+    const t2 = setTimeout(burst, 450);
+    const t3 = setTimeout(burst, 950);
 
     const step = (now: number) => {
       const rawDt = now - last;
@@ -170,28 +165,29 @@ export function SafeTreasureBurst({
       elapsed += rawDt;
       const dt = Math.min(28, rawDt) / 16.67;
 
-      if (elapsed > 600 && elapsed < duration - 500 && Math.random() < 0.14) {
-        spawnFromPile(particles, ox, oy, 4, 8);
+      if (elapsed > 700 && elapsed < duration - 500 && Math.random() < 0.12) {
+        spawnFromPile(particles, ox, oy, bounds.w, bounds.h, 3, 6);
       }
 
       const w = bounds.w;
       const h = bounds.h;
       ctx.clearRect(0, 0, w, h);
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, w, h);
+      ctx.clip();
 
-      const grav = 0.13 * dt;
-      const wind = Math.sin(elapsed * 0.002) * 0.08 * dt;
-
+      const grav = 0.11 * dt;
       for (let i = particles.length - 1; i >= 0; i--) {
         const p = particles[i]!;
         p.vy += grav;
-        p.vx += wind;
-        p.vx *= Math.pow(0.992, dt);
-        p.vy *= Math.pow(0.998, dt);
+        p.vx *= Math.pow(0.99, dt);
         p.x += p.vx * dt;
         p.y += p.vy * dt;
         p.rot += p.vr * dt;
         p.life -= p.decay * dt * 18;
-        if (p.y > h + 50 || p.x < -40 || p.x > w + 40 || p.life <= 0) {
+
+        if (p.x < -8 || p.x > w + 8 || p.y < -8 || p.y > h + 8 || p.life <= 0) {
           particles.splice(i, 1);
           continue;
         }
@@ -200,6 +196,7 @@ export function SafeTreasureBurst({
         if (p.kind === "diamond") drawDiamond(ctx, p, a);
         else drawConfetti(ctx, p, a);
       }
+      ctx.restore();
 
       if (elapsed < duration) {
         raf = requestAnimationFrame(step);
@@ -213,9 +210,11 @@ export function SafeTreasureBurst({
     return () => {
       cancelAnimationFrame(raf);
       ro.disconnect();
+      clearTimeout(t2);
+      clearTimeout(t3);
     };
-  }, [active, anchorRef, originX, originY]);
+  }, [active, clipRef, originX, originY]);
 
   if (!active) return null;
-  return <canvas ref={canvasRef} className="safe-treasure-burst" aria-hidden />;
+  return <canvas ref={canvasRef} className="safe-visual__burst-canvas" aria-hidden />;
 }

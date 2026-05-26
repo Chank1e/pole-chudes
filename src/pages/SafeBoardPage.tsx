@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { SafeTreasureBurst } from "../components/SafeTreasureBurst";
 import { SafeVisual } from "../components/SafeVisual";
 import { useRejectSound } from "../safe/useRejectSound";
 import { useVictorySound } from "../safe/useVictorySound";
@@ -12,7 +11,6 @@ export function SafeBoardPage() {
   const { connected, state } = useSafeSocket("safe-board");
   const playReject = useRejectSound();
   const playVictory = useVictorySound();
-  const stageRef = useRef<HTMLDivElement>(null);
   const lastEventSeqRef = useRef(0);
   const victoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const burstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -95,13 +93,13 @@ export function SafeBoardPage() {
           <div className="safe-board__hint">Ведущий ещё не активировал сейф</div>
         )}
 
-        <div className="safe-board__stage" ref={stageRef}>
-          <SafeVisual display={display} phase={phase} popIndex={popIndex} />
-          <SafeTreasureBurst
-            anchorRef={stageRef}
-            originX={0.5}
-            originY={0.54}
-            active={showBurst && phase === "success"}
+        <div className="safe-board__stage">
+          <SafeVisual
+            display={display}
+            phase={phase}
+            popIndex={popIndex}
+            chroma={chroma}
+            burstActive={showBurst && phase === "success"}
           />
         </div>
       </div>
