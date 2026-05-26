@@ -1,10 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SafeVisual } from "../components/SafeVisual";
+import { attachAudioUnlock } from "../safe/audio";
 import { useDoorSound } from "../safe/useDoorSound";
 import { useRejectSound } from "../safe/useRejectSound";
 import { useSafeTheme } from "../safe/useSafeTheme";
 import { useVictorySound } from "../safe/useVictorySound";
+import { useWrongSound } from "../safe/useWrongSound";
 import { useSafeSocket } from "../useSafeSocket";
 
 export function SafeBoardPage() {
@@ -15,6 +17,7 @@ export function SafeBoardPage() {
   const playReject = useRejectSound();
   const playVictory = useVictorySound();
   const playDoor = useDoorSound();
+  const playWrong = useWrongSound();
   const lastEventSeqRef = useRef(0);
   const victoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [popIndex, setPopIndex] = useState<number | null>(null);
@@ -28,6 +31,10 @@ export function SafeBoardPage() {
       if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
     };
   }, []);
+
+  // Аудио в браузере спит до первого user-gesture. Один клик где угодно
+  // по странице — и звуки заработают (для OBS-сорса — клик по preview).
+  useEffect(() => attachAudioUnlock(), []);
 
   useEffect(() => {
     if (!state) return;
@@ -43,7 +50,11 @@ export function SafeBoardPage() {
       return;
     }
     if (ev.type === "wrong") {
-      playReject();
+      if (theme.wrongPreset === "shake") {
+        playReject();
+      } else {
+        void playWrong(theme.wrongPreset);
+      }
       setPopIndex(null);
       setWrongTrigger((t) => t + 1);
       if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
@@ -66,7 +77,7 @@ export function SafeBoardPage() {
       setWrongTrigger(0);
       if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
     }
-  }, [state, playReject, playVictory, playDoor, theme.doorSound]);
+  }, [state, playReject, playVictory, playDoor, playWrong, theme.doorSound, theme.wrongPreset]);
 
   const rootClass = useMemo(
     () => `safe-board-root ${chroma ? "safe-board-root--chroma" : ""}`,

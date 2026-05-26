@@ -17,12 +17,17 @@ export function useDoorSound() {
     if (now - lastPlay.current < 250) return;
     lastPlay.current = now;
 
-    const ctx = await ensureAudioContext();
-    if (!ctx) return;
+    try {
+      const ctx = await ensureAudioContext();
+      if (!ctx) return;
 
-    if (preset === "creak") playCreak(ctx);
-    else if (preset === "metal") playMetal(ctx);
-    else if (preset === "magic") playMagic(ctx);
+      if (preset === "creak") playCreak(ctx);
+      else if (preset === "metal") playMetal(ctx);
+      else if (preset === "magic") playMagic(ctx);
+    } catch (e) {
+      // eslint-disable-next-line no-console
+      console.warn("[useDoorSound] play failed", e);
+    }
   }, []);
 }
 

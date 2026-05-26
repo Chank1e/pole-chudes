@@ -1,9 +1,13 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { SafeVisual } from "../components/SafeVisual";
+import { attachAudioUnlock } from "../safe/audio";
+import { useDoorSound } from "../safe/useDoorSound";
 import { useRandomCodeRoll } from "../safe/useRandomCodeRoll";
+import { useRejectSound } from "../safe/useRejectSound";
 import { useSafeSocket } from "../useSafeSocket";
 import { useSafeTheme } from "../safe/useSafeTheme";
+import { useWrongSound } from "../safe/useWrongSound";
 import {
   DENSITY_OPTIONS,
   DIAMOND_PALETTES,
@@ -65,6 +69,11 @@ export function SafeHostPage() {
   );
   const [theme, patchTheme] = useSafeTheme();
   const [toast, setToast] = useState<string | null>(null);
+  const playDoorPreview = useDoorSound();
+  const playWrongPreview = useWrongSound();
+  const playRejectPreview = useRejectSound();
+
+  useEffect(() => attachAudioUnlock(), []);
 
   const boardUrl = useMemo(() => `${window.location.origin}/safe/board?chroma=1`, []);
   const boardPreviewUrl = useMemo(() => `${window.location.origin}/safe/board`, []);
@@ -265,13 +274,20 @@ export function SafeHostPage() {
             label="Звук открытия"
             value={theme.doorSound}
             options={DOOR_SOUND_OPTIONS}
-            onPick={(v) => patchTheme({ doorSound: v })}
+            onPick={(v) => {
+              patchTheme({ doorSound: v });
+              void playDoorPreview(v);
+            }}
           />
           <ThemeRow
             label="Неверный код"
             value={theme.wrongPreset}
             options={WRONG_PRESET_OPTIONS}
-            onPick={(v) => patchTheme({ wrongPreset: v })}
+            onPick={(v) => {
+              patchTheme({ wrongPreset: v });
+              if (v === "shake") playRejectPreview();
+              else void playWrongPreview(v);
+            }}
           />
         </div>
       </section>

@@ -1129,27 +1129,28 @@
   z-index: 6;
 }
 
-/* COP */
+/* COP — вбегает справа, дважды бьёт по сейфу, потом убегает ВЛЕВО за край */
 .wrong-fx--cop .wrong-fx__cop {
   position: absolute;
-  right: -22%;
-  bottom: 6%;
+  right: 4%;
+  bottom: 4%;
   width: 36%;
-  height: 60%;
-  transform: translateX(120%);
-  animation: wrong-cop-run 2.6s cubic-bezier(0.5, 0, 0.5, 1) forwards;
+  height: 62%;
+  transform: translateX(180%);
+  animation: wrong-cop-run 3s cubic-bezier(0.5, 0, 0.5, 1) forwards;
 }
 
 @keyframes wrong-cop-run {
-  0% { transform: translateX(120%) rotate(0deg); }
-  18% { transform: translateX(-10%) rotate(-3deg); }
-  28% { transform: translateX(-10%) rotate(-3deg); }
-  34% { transform: translateX(-10%) rotate(3deg); }
-  40% { transform: translateX(-10%) rotate(-2deg); }
-  46% { transform: translateX(-10%) rotate(2deg); }
-  55% { transform: translateX(-10%) rotate(0deg); }
-  75% { transform: translateX(-10%) rotate(0deg); }
-  100% { transform: translateX(-140%) rotate(0deg); }
+  /* забег справа */
+  0% { transform: translateX(180%) rotate(0deg); }
+  10% { transform: translateX(40%) rotate(-2deg); }
+  16% { transform: translateX(0) rotate(0deg); }
+  /* удары на месте */
+  20%, 50% { transform: translateX(0) rotate(0deg); }
+  /* короткая поза-«фуу!» */
+  56% { transform: translateX(2%) rotate(-2deg); }
+  /* МАХ влево, разбежался — за пределы сейфа */
+  100% { transform: translateX(-360%) rotate(-3deg); }
 }
 
 .wrong-fx--cop .wrong-fx__cop-svg {
@@ -1160,37 +1161,37 @@
 
 .wrong-fx--cop .wrong-fx__cop-arm {
   transform-origin: 24px 100px;
-  animation: wrong-cop-swing 2.6s ease-in-out forwards;
+  animation: wrong-cop-swing 3s ease-in-out forwards;
 }
 
 @keyframes wrong-cop-swing {
-  0%, 22% { transform: rotate(0deg); }
-  28% { transform: rotate(-110deg); }
-  34% { transform: rotate(0deg); }
-  40% { transform: rotate(-110deg); }
-  46% { transform: rotate(0deg); }
+  0%, 20% { transform: rotate(0deg); }
+  26% { transform: rotate(-115deg); }
+  32% { transform: rotate(0deg); }
+  38% { transform: rotate(-115deg); }
+  44% { transform: rotate(0deg); }
   100% { transform: rotate(0deg); }
 }
 
 .wrong-fx--cop .wrong-fx__cop-impact {
   position: absolute;
-  left: -10%;
+  left: -28%;
   top: 28%;
-  width: 60px;
-  height: 60px;
+  width: 70px;
+  height: 70px;
   border-radius: 50%;
   background: radial-gradient(circle, rgba(254, 240, 138, 0.95), rgba(251, 146, 60, 0.6) 40%, transparent 75%);
   opacity: 0;
-  animation: wrong-cop-impact 2.6s ease-out forwards;
+  animation: wrong-cop-impact 3s ease-out forwards;
   mix-blend-mode: screen;
 }
 
 @keyframes wrong-cop-impact {
-  0%, 25% { opacity: 0; transform: scale(0.4); }
-  29% { opacity: 1; transform: scale(1.6); }
-  33% { opacity: 0; transform: scale(2); }
-  37% { opacity: 1; transform: scale(1.6); }
-  41% { opacity: 0; transform: scale(2); }
+  0%, 24% { opacity: 0; transform: scale(0.4); }
+  27% { opacity: 1; transform: scale(1.7); }
+  31% { opacity: 0; transform: scale(2.2); }
+  36% { opacity: 1; transform: scale(1.7); }
+  40% { opacity: 0; transform: scale(2.2); }
   100% { opacity: 0; }
 }
 
@@ -1206,29 +1207,30 @@
   text-shadow: 0 4px 0 #7f1d1d;
   transform: rotate(-12deg) scale(0);
   opacity: 0;
-  animation: wrong-cop-shout 2.6s ease-out forwards;
+  animation: wrong-cop-shout 3s ease-out forwards;
 }
 
 @keyframes wrong-cop-shout {
-  0%, 27% { opacity: 0; transform: rotate(-12deg) scale(0); }
-  31% { opacity: 1; transform: rotate(-12deg) scale(1.2); }
-  39% { opacity: 1; transform: rotate(-8deg) scale(1); }
-  47% { opacity: 1; transform: rotate(-14deg) scale(1.15); }
-  60% { opacity: 1; transform: rotate(-10deg) scale(1); }
-  100% { opacity: 0; transform: rotate(-10deg) scale(0.9); }
+  0%, 25% { opacity: 0; transform: rotate(-12deg) scale(0); }
+  28% { opacity: 1; transform: rotate(-12deg) scale(1.3); }
+  36% { opacity: 1; transform: rotate(-8deg) scale(1); }
+  44% { opacity: 1; transform: rotate(-14deg) scale(1.18); }
+  58% { opacity: 1; transform: rotate(-10deg) scale(1); }
+  80% { opacity: 0; transform: rotate(-10deg) scale(0.9); }
+  100% { opacity: 0; }
 }
 
 .safe-visual--wrong-cop.safe-visual--fail {
-  animation: safe-bonk 2.6s ease-in-out;
+  animation: safe-bonk 3s ease-in-out;
 }
 
 @keyframes safe-bonk {
-  0%, 26% { transform: translateY(0) rotate(0deg); }
-  29% { transform: translateY(8px) rotate(1deg); }
-  33% { transform: translateY(0) rotate(-0.5deg); }
-  39% { transform: translateY(8px) rotate(1deg); }
-  43% { transform: translateY(0) rotate(0deg); }
-  100% { transform: translateY(0) rotate(0deg); }
+  0%, 24% { transform: translate(0, 0) rotate(0deg); }
+  27% { transform: translate(-3px, 6px) rotate(0.6deg); }
+  31% { transform: translate(0, 0) rotate(-0.3deg); }
+  36% { transform: translate(-3px, 6px) rotate(0.6deg); }
+  41% { transform: translate(0, 0) rotate(0deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
 }
 
 /* SIREN */
@@ -1310,12 +1312,21 @@
   color: #fecaca;
   letter-spacing: 0.14em;
   text-shadow: 0 0 12px rgba(220, 38, 38, 0.9);
-  animation: wrong-siren-label 0.35s steps(2, end) infinite;
+  opacity: 0;
+  animation: wrong-siren-label 2.4s linear forwards;
 }
 
 @keyframes wrong-siren-label {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0.3; }
+  0% { opacity: 0; }
+  6% { opacity: 1; }
+  18% { opacity: 0.25; }
+  30% { opacity: 1; }
+  42% { opacity: 0.25; }
+  54% { opacity: 1; }
+  66% { opacity: 0.25; }
+  78% { opacity: 1; }
+  90% { opacity: 0.25; }
+  100% { opacity: 0; }
 }
 
 /* LIGHTNING */

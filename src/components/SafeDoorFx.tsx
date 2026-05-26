@@ -15,7 +15,7 @@ export function SafeDoorFx({ preset, active }: Props) {
   if (!active || preset === "classic") return null;
 
   return (
-    <div className={`door-fx door-fx--${preset}`} aria-hidden>
+    <div className={`door-fx door-fx--${preset}`} key={preset} aria-hidden>
       {preset === "blast" && <BlastFx />}
       {preset === "vault" && <VaultFx />}
       {preset === "flash" && <FlashFx />}
