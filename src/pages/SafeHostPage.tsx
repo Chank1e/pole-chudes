@@ -3,8 +3,56 @@ import { Link } from "react-router-dom";
 import { SafeVisual } from "../components/SafeVisual";
 import { useRandomCodeRoll } from "../safe/useRandomCodeRoll";
 import { useSafeSocket } from "../useSafeSocket";
+import { useSafeTheme } from "../safe/useSafeTheme";
+import {
+  DENSITY_OPTIONS,
+  DIAMOND_PALETTES,
+  PALETTE_OPTIONS,
+  SCALE_OPTIONS,
+  SPEED_OPTIONS,
+} from "../safe/theme";
 
 const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+
+type ChipOption<T extends string> = { value: T; label: string };
+
+function ThemeRow<T extends string>({
+  label,
+  value,
+  options,
+  onPick,
+  swatchOf,
+}: {
+  label: string;
+  value: T;
+  options: ChipOption<T>[];
+  onPick: (next: T) => void;
+  swatchOf?: (v: T) => string | null;
+}) {
+  return (
+    <div className="theme-row">
+      <span className="theme-row__label">{label}</span>
+      <div className="theme-options">
+        {options.map((opt) => {
+          const active = opt.value === value;
+          const dot = swatchOf?.(opt.value);
+          return (
+            <button
+              key={String(opt.value)}
+              type="button"
+              className={`theme-chip ${dot ? "theme-chip--swatch" : ""} ${active ? "theme-chip--active" : ""}`}
+              onClick={() => onPick(opt.value)}
+              style={dot ? ({ ["--chip-dot" as string]: dot } as React.CSSProperties) : undefined}
+            >
+              {dot && <span className="theme-chip__dot" aria-hidden />}
+              <span>{opt.label}</span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export function SafeHostPage() {
   const { connected, state, hostCode, lastError, send } = useSafeSocket("safe-host");
@@ -12,6 +60,7 @@ export function SafeHostPage() {
     hostCode,
     send,
   );
+  const [theme, patchTheme] = useSafeTheme();
   const [toast, setToast] = useState<string | null>(null);
 
   const boardUrl = useMemo(() => `${window.location.origin}/safe/board?chroma=1`, []);
@@ -97,7 +146,13 @@ export function SafeHostPage() {
           )}
         </div>
         <div className={`safe-host-preview ${rolling ? "safe-host-preview--rolling" : ""}`}>
-          <SafeVisual display={previewDial} phase={phase} compact digitsRolling={rolling} />
+          <SafeVisual
+            display={previewDial}
+            phase={phase}
+            compact
+            digitsRolling={rolling}
+            theme={theme}
+          />
         </div>
       </section>
 
@@ -163,6 +218,41 @@ export function SafeHostPage() {
         {phase === "success" && (
           <p className="host__fb">Сейф открыт — нажмите «Сбросить» для нового розыгрыша.</p>
         )}
+      </section>
+
+      <section className="card">
+        <h2 className="card__h">Тема табло</h2>
+        <p className="muted">
+          Меняется в реальном времени и сразу прилетает на OBS-табло (синхронизация через
+          BroadcastChannel + localStorage — без ребилда и без перезагрузки источника).
+        </p>
+        <div className="theme-grid">
+          <ThemeRow
+            label="Палитра алмазов"
+            value={theme.diamondPalette}
+            options={PALETTE_OPTIONS}
+            onPick={(v) => patchTheme({ diamondPalette: v })}
+            swatchOf={(v) => DIAMOND_PALETTES[v][0]?.color ?? null}
+          />
+          <ThemeRow
+            label="Конфетти"
+            value={theme.confettiDensity}
+            options={DENSITY_OPTIONS}
+            onPick={(v) => patchTheme({ confettiDensity: v })}
+          />
+          <ThemeRow
+            label="Размер кучи"
+            value={theme.pileScale}
+            options={SCALE_OPTIONS}
+            onPick={(v) => patchTheme({ pileScale: v })}
+          />
+          <ThemeRow
+            label="Скорость открытия двери"
+            value={theme.doorSpeed}
+            options={SPEED_OPTIONS}
+            onPick={(v) => patchTheme({ doorSpeed: v })}
+          />
+        </div>
       </section>
 
       <section className="card">

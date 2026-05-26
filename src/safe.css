@@ -132,7 +132,7 @@
 
 .safe-visual--open .safe-visual__door {
   z-index: 2;
-  animation: safe-door-open 1.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  animation: safe-door-open var(--safe-door-ms, 1.45s) cubic-bezier(0.22, 1, 0.36, 1) forwards;
 }
 
 .safe-visual--open .safe-visual__body {
@@ -239,75 +239,60 @@
   right: 0;
   bottom: 0;
   height: 92%;
-  transform: translateY(55%) scale(0.55);
+  transform: translateY(55%) scale(calc(var(--pile-scale, 1) * 0.55));
   transform-origin: center bottom;
 }
 
-/* --- Крупный алмаз --- */
+/* --- Крупный SVG-алмаз --- */
 .diamond-gem {
   position: absolute;
   display: block;
   opacity: 0;
-  transform: scale(0);
+  transform: scale(0) rotate(var(--dg-tilt, 0deg));
   transform-origin: center bottom;
 }
 
 .safe-visual--open .diamond-gem {
-  animation: safe-diamond-slot 0.85s cubic-bezier(0.2, 0.9, 0.2, 1) backwards;
+  animation: safe-diamond-slot 0.85s cubic-bezier(0.2, 0.9, 0.2, 1) forwards;
   animation-delay: var(--dg-delay, 0s);
 }
 
 .diamond-gem__inner {
   position: absolute;
   inset: 0;
-  transform: rotate(45deg);
-  transform-origin: center center;
+  display: block;
+  filter: drop-shadow(0 6px 10px rgba(2, 18, 42, 0.55));
 }
 
 .safe-visual--open .diamond-gem__inner {
   animation: safe-diamond-float 3.2s ease-in-out calc(var(--dg-delay, 0s) + 1.1s) infinite;
 }
 
-.diamond-gem__stone {
+.diamond-gem__svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.diamond-gem__sparkle {
+  transform-origin: center;
+  animation: safe-diamond-sparkle 2.4s ease-in-out 1.2s infinite;
+}
+
+/* Конфетти — слой ПОЗАДИ горы, внутри интерьера */
+.safe-visual__confetti {
   position: absolute;
   inset: 0;
-  background: linear-gradient(
-    145deg,
-    var(--dg-shine) 0%,
-    var(--dg-color) 38%,
-    #0c4a6e 72%,
-    #082f49 100%
-  );
-  clip-path: polygon(50% 0%, 94% 50%, 50% 100%, 6% 50%);
-  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+  z-index: 1;
+  pointer-events: none;
+  opacity: 0;
+  animation: safe-confetti-in 0.5s ease-out 0.4s forwards;
 }
 
-.diamond-gem__facet {
-  position: absolute;
-  inset: 8%;
-  opacity: 0.45;
-  clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
-}
-
-.diamond-gem__facet--l {
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), transparent 55%);
-}
-
-.diamond-gem__facet--r {
-  background: linear-gradient(315deg, rgba(0, 0, 0, 0.35), transparent 50%);
-}
-
-.diamond-gem__shine {
-  position: absolute;
-  top: 12%;
-  left: 22%;
-  width: 28%;
-  height: 22%;
-  background: rgba(255, 255, 255, 0.75);
-  border-radius: 40%;
-  filter: blur(1px);
-  transform: rotate(-45deg);
-  animation: safe-diamond-sparkle 2.4s ease-in-out 1.2s infinite;
+@keyframes safe-confetti-in {
+  to {
+    opacity: 1;
+  }
 }
 
 .safe-visual__door {
@@ -633,27 +618,27 @@
 
 @keyframes safe-mountain-erupt {
   0% {
-    transform: translateY(55%) scale(0.55);
+    transform: translateY(55%) scale(calc(var(--pile-scale, 1) * 0.55));
   }
   55% {
-    transform: translateY(-6%) scale(1.04);
+    transform: translateY(-6%) scale(calc(var(--pile-scale, 1) * 1.04));
   }
   100% {
-    transform: translateY(0) scale(1);
+    transform: translateY(0) scale(var(--pile-scale, 1));
   }
 }
 
 @keyframes safe-diamond-slot {
   0% {
-    transform: scale(0);
+    transform: scale(0) rotate(var(--dg-tilt, 0deg));
     opacity: 0;
   }
   65% {
-    transform: scale(1.1);
+    transform: scale(1.12) rotate(var(--dg-tilt, 0deg));
     opacity: 1;
   }
   100% {
-    transform: scale(1);
+    transform: scale(1) rotate(var(--dg-tilt, 0deg));
     opacity: 1;
   }
 }
@@ -661,10 +646,10 @@
 @keyframes safe-diamond-float {
   0%,
   100% {
-    transform: rotate(45deg) translateY(0);
+    transform: translateY(0);
   }
   50% {
-    transform: rotate(45deg) translateY(-6px);
+    transform: translateY(-4px);
   }
 }
 
@@ -811,4 +796,67 @@
 
 .numpad__key:not(:disabled):hover {
   transform: translateY(-1px);
+}
+
+/* Настройки темы */
+.theme-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 14px;
+}
+
+.theme-row {
+  display: grid;
+  gap: 6px;
+}
+
+.theme-row__label {
+  font-size: 13px;
+  font-weight: 700;
+  color: rgba(255, 255, 255, 0.72);
+  letter-spacing: 0.02em;
+}
+
+.theme-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.theme-chip {
+  appearance: none;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.04);
+  color: rgba(255, 255, 255, 0.78);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 7px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 120ms, border-color 120ms, color 120ms;
+}
+
+.theme-chip:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: white;
+}
+
+.theme-chip--active {
+  background: linear-gradient(135deg, #f6d365, #fda085);
+  color: rgba(0, 0, 0, 0.85);
+  border-color: transparent;
+}
+
+.theme-chip--swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-chip__dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--chip-dot, #38bdf8);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.35);
 }

@@ -1,6 +1,14 @@
 import { useEffect, useRef } from "react";
 import type { SafePhase } from "../safe/types";
+import {
+  DEFAULT_THEME,
+  DIAMOND_PALETTES,
+  DOOR_SPEED_MS,
+  PILE_SCALE_VALUE,
+  type SafeTheme,
+} from "../safe/theme";
 import { DiamondGem } from "./DiamondGem";
+import { SafeConfetti } from "./SafeConfetti";
 
 type Props = {
   display: [string, string, string];
@@ -9,22 +17,23 @@ type Props = {
   compact?: boolean;
   chroma?: boolean;
   digitsRolling?: boolean;
+  theme?: SafeTheme;
 };
 
-/** Мало камней, но ОГРОМНЫХ — гора, не конфетти. */
-const MEGA_GEMS = [
-  { left: -10, bottom: -8, size: 118, layer: 1, color: "#0369a1", shine: "#7dd3fc", delay: 0.52 },
-  { left: 8, bottom: -10, size: 148, layer: 2, color: "#0ea5e9", shine: "#bae6fd", delay: 0.58 },
-  { left: 32, bottom: -8, size: 162, layer: 3, color: "#0284c7", shine: "#e0f2fe", delay: 0.55 },
-  { left: 54, bottom: -6, size: 140, layer: 2, color: "#0891b2", shine: "#67e8f9", delay: 0.6 },
-  { left: 74, bottom: -8, size: 115, layer: 1, color: "#155e75", shine: "#22d3ee", delay: 0.53 },
-  { left: 0, bottom: 18, size: 98, layer: 2, color: "#1d4ed8", shine: "#93c5fd", delay: 0.68 },
-  { left: 22, bottom: 24, size: 125, layer: 4, color: "#38bdf8", shine: "#f0f9ff", delay: 0.72 },
-  { left: 46, bottom: 26, size: 112, layer: 3, color: "#06b6d4", shine: "#a5f3fc", delay: 0.7 },
-  { left: 66, bottom: 20, size: 95, layer: 2, color: "#0e7490", shine: "#7dd3fc", delay: 0.74 },
-  { left: 14, bottom: 44, size: 82, layer: 3, color: "#2563eb", shine: "#bfdbfe", delay: 0.82 },
-  { left: 38, bottom: 48, size: 88, layer: 4, color: "#22d3ee", shine: "#ecfeff", delay: 0.86 },
-  { left: 58, bottom: 42, size: 76, layer: 3, color: "#0369a1", shine: "#7dd3fc", delay: 0.8 },
+/** Позиции/размеры/наклон 12 камней в куче. Цвета подставляются из палитры темы. */
+const GEM_LAYOUT = [
+  { left: -10, bottom: -8, size: 118, layer: 1, delay: 0.52, tilt: -18 },
+  { left: 8, bottom: -10, size: 148, layer: 2, delay: 0.58, tilt: 8 },
+  { left: 32, bottom: -8, size: 162, layer: 3, delay: 0.55, tilt: -4 },
+  { left: 54, bottom: -6, size: 140, layer: 2, delay: 0.6, tilt: 14 },
+  { left: 74, bottom: -8, size: 115, layer: 1, delay: 0.53, tilt: 22 },
+  { left: 0, bottom: 18, size: 98, layer: 2, delay: 0.68, tilt: -12 },
+  { left: 22, bottom: 24, size: 125, layer: 4, delay: 0.72, tilt: 6 },
+  { left: 46, bottom: 26, size: 112, layer: 3, delay: 0.7, tilt: -8 },
+  { left: 66, bottom: 20, size: 95, layer: 2, delay: 0.74, tilt: 18 },
+  { left: 14, bottom: 44, size: 82, layer: 3, delay: 0.82, tilt: -22 },
+  { left: 38, bottom: 48, size: 88, layer: 4, delay: 0.86, tilt: 4 },
+  { left: 58, bottom: 42, size: 76, layer: 3, delay: 0.8, tilt: 16 },
 ] as const;
 
 export function SafeVisual({
@@ -34,6 +43,7 @@ export function SafeVisual({
   compact = false,
   chroma = false,
   digitsRolling = false,
+  theme = DEFAULT_THEME,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const interiorRef = useRef<HTMLDivElement>(null);
@@ -50,6 +60,10 @@ export function SafeVisual({
   const isFail = phase === "fail";
   const isOpen = phase === "success";
 
+  const palette = DIAMOND_PALETTES[theme.diamondPalette];
+  const pileScale = PILE_SCALE_VALUE[theme.pileScale];
+  const doorMs = DOOR_SPEED_MS[theme.doorSpeed];
+
   return (
     <div
       ref={rootRef}
@@ -62,6 +76,12 @@ export function SafeVisual({
       ]
         .filter(Boolean)
         .join(" ")}
+      style={
+        {
+          ["--pile-scale" as string]: pileScale,
+          ["--safe-door-ms" as string]: `${doorMs}ms`,
+        } as React.CSSProperties
+      }
       aria-hidden={compact}
     >
       {!chroma && <div className="safe-visual__shadow" />}
@@ -72,11 +92,28 @@ export function SafeVisual({
         <div ref={interiorRef} className="safe-visual__interior">
           <div className="safe-visual__inner-glow" />
 
+          {!compact && (
+            <SafeConfetti
+              clipRef={interiorRef}
+              active={isOpen}
+              density={theme.confettiDensity}
+            />
+          )}
+
           <div className="safe-visual__mountain" aria-hidden>
             <div className="safe-visual__mountain-stack">
-              {MEGA_GEMS.map((g, i) => (
-                <DiamondGem key={i} {...g} compact={compact} />
-              ))}
+              {GEM_LAYOUT.map((pos, i) => {
+                const stone = palette[i % palette.length]!;
+                return (
+                  <DiamondGem
+                    key={i}
+                    {...pos}
+                    color={stone.color}
+                    shine={stone.shine}
+                    compact={compact}
+                  />
+                );
+              })}
             </div>
           </div>
 

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SafeVisual } from "../components/SafeVisual";
 import { useRejectSound } from "../safe/useRejectSound";
+import { useSafeTheme } from "../safe/useSafeTheme";
 import { useVictorySound } from "../safe/useVictorySound";
 import { useSafeSocket } from "../useSafeSocket";
 
@@ -9,6 +10,7 @@ export function SafeBoardPage() {
   const [params] = useSearchParams();
   const chroma = params.get("chroma") === "1";
   const { connected, state } = useSafeSocket("safe-board");
+  const [theme] = useSafeTheme();
   const playReject = useRejectSound();
   const playVictory = useVictorySound();
   const lastEventSeqRef = useRef(0);
@@ -81,7 +83,13 @@ export function SafeBoardPage() {
         )}
 
         <div className="safe-board__stage">
-          <SafeVisual display={display} phase={phase} popIndex={popIndex} chroma={chroma} />
+          <SafeVisual
+            display={display}
+            phase={phase}
+            popIndex={popIndex}
+            chroma={chroma}
+            theme={theme}
+          />
         </div>
       </div>
     </div>
