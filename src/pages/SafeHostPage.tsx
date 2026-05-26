@@ -7,9 +7,12 @@ import { useSafeTheme } from "../safe/useSafeTheme";
 import {
   DENSITY_OPTIONS,
   DIAMOND_PALETTES,
+  DOOR_PRESET_OPTIONS,
+  DOOR_SOUND_OPTIONS,
   PALETTE_OPTIONS,
   SCALE_OPTIONS,
   SPEED_OPTIONS,
+  WRONG_PRESET_OPTIONS,
 } from "../safe/theme";
 
 const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
@@ -251,6 +254,24 @@ export function SafeHostPage() {
             value={theme.doorSpeed}
             options={SPEED_OPTIONS}
             onPick={(v) => patchTheme({ doorSpeed: v })}
+          />
+          <ThemeRow
+            label="Стиль открытия двери"
+            value={theme.doorPreset}
+            options={DOOR_PRESET_OPTIONS}
+            onPick={(v) => patchTheme({ doorPreset: v })}
+          />
+          <ThemeRow
+            label="Звук открытия"
+            value={theme.doorSound}
+            options={DOOR_SOUND_OPTIONS}
+            onPick={(v) => patchTheme({ doorSound: v })}
+          />
+          <ThemeRow
+            label="Неверный код"
+            value={theme.wrongPreset}
+            options={WRONG_PRESET_OPTIONS}
+            onPick={(v) => patchTheme({ wrongPreset: v })}
           />
         </div>
       </section>

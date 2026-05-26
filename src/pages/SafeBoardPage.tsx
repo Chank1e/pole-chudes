@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { SafeVisual } from "../components/SafeVisual";
+import { useDoorSound } from "../safe/useDoorSound";
 import { useRejectSound } from "../safe/useRejectSound";
 import { useSafeTheme } from "../safe/useSafeTheme";
 import { useVictorySound } from "../safe/useVictorySound";
@@ -13,9 +14,11 @@ export function SafeBoardPage() {
   const [theme] = useSafeTheme();
   const playReject = useRejectSound();
   const playVictory = useVictorySound();
+  const playDoor = useDoorSound();
   const lastEventSeqRef = useRef(0);
   const victoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [popIndex, setPopIndex] = useState<number | null>(null);
+  const [wrongTrigger, setWrongTrigger] = useState(0);
 
   const display = state?.display ?? ["-", "-", "-"];
   const phase = state?.phase ?? "idle";
@@ -42,6 +45,7 @@ export function SafeBoardPage() {
     if (ev.type === "wrong") {
       playReject();
       setPopIndex(null);
+      setWrongTrigger((t) => t + 1);
       if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
       return;
     }
@@ -50,6 +54,8 @@ export function SafeBoardPage() {
 
       if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
 
+      void playDoor(theme.doorSound);
+
       victoryTimerRef.current = setTimeout(() => {
         void playVictory();
       }, 920);
@@ -57,9 +63,10 @@ export function SafeBoardPage() {
     }
     if (ev.type === "reset") {
       setPopIndex(null);
+      setWrongTrigger(0);
       if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
     }
-  }, [state, playReject, playVictory]);
+  }, [state, playReject, playVictory, playDoor, theme.doorSound]);
 
   const rootClass = useMemo(
     () => `safe-board-root ${chroma ? "safe-board-root--chroma" : ""}`,
@@ -89,6 +96,7 @@ export function SafeBoardPage() {
             popIndex={popIndex}
             chroma={chroma}
             theme={theme}
+            wrongTrigger={wrongTrigger}
           />
         </div>
       </div>

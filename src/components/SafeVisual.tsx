@@ -9,6 +9,8 @@ import {
 } from "../safe/theme";
 import { DiamondGem } from "./DiamondGem";
 import { SafeConfetti } from "./SafeConfetti";
+import { SafeDoorFx } from "./SafeDoorFx";
+import { SafeWrongFx } from "./SafeWrongFx";
 
 type Props = {
   display: [string, string, string];
@@ -18,6 +20,7 @@ type Props = {
   chroma?: boolean;
   digitsRolling?: boolean;
   theme?: SafeTheme;
+  wrongTrigger?: number;
 };
 
 /** Позиции/размеры/наклон 12 камней в куче. Цвета подставляются из палитры темы. */
@@ -44,6 +47,7 @@ export function SafeVisual({
   chroma = false,
   digitsRolling = false,
   theme = DEFAULT_THEME,
+  wrongTrigger = 0,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const interiorRef = useRef<HTMLDivElement>(null);
@@ -73,6 +77,8 @@ export function SafeVisual({
         chroma ? "safe-visual--chroma" : "",
         isFail ? "safe-visual--fail" : "",
         isOpen ? "safe-visual--unlocking safe-visual--open" : "",
+        `safe-visual--door-${theme.doorPreset}`,
+        `safe-visual--wrong-${theme.wrongPreset}`,
       ]
         .filter(Boolean)
         .join(" ")}
@@ -85,6 +91,9 @@ export function SafeVisual({
       aria-hidden={compact}
     >
       {!chroma && <div className="safe-visual__shadow" />}
+
+      {!compact && <SafeDoorFx preset={theme.doorPreset} active={isOpen} />}
+      {!compact && <SafeWrongFx preset={theme.wrongPreset} trigger={wrongTrigger} />}
 
       <div className="safe-visual__body">
         <div className="safe-visual__rim" />

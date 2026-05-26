@@ -2,12 +2,18 @@ export type DiamondPalette = "blue" | "gold" | "ruby" | "rainbow";
 export type ConfettiDensity = "off" | "low" | "normal" | "heavy";
 export type PileScale = "small" | "normal" | "huge";
 export type DoorSpeed = "slow" | "normal" | "fast";
+export type DoorPreset = "classic" | "blast" | "vault" | "flash";
+export type WrongPreset = "shake" | "cop" | "siren" | "lightning" | "bomb";
+export type DoorSound = "off" | "creak" | "metal" | "magic";
 
 export type SafeTheme = {
   diamondPalette: DiamondPalette;
   confettiDensity: ConfettiDensity;
   pileScale: PileScale;
   doorSpeed: DoorSpeed;
+  doorPreset: DoorPreset;
+  wrongPreset: WrongPreset;
+  doorSound: DoorSound;
 };
 
 export const DEFAULT_THEME: SafeTheme = {
@@ -15,6 +21,9 @@ export const DEFAULT_THEME: SafeTheme = {
   confettiDensity: "normal",
   pileScale: "normal",
   doorSpeed: "normal",
+  doorPreset: "blast",
+  wrongPreset: "cop",
+  doorSound: "creak",
 };
 
 export const PALETTE_OPTIONS: { value: DiamondPalette; label: string }[] = [
@@ -41,6 +50,28 @@ export const SPEED_OPTIONS: { value: DoorSpeed; label: string }[] = [
   { value: "slow", label: "Медленно" },
   { value: "normal", label: "Норма" },
   { value: "fast", label: "Быстро" },
+];
+
+export const DOOR_PRESET_OPTIONS: { value: DoorPreset; label: string }[] = [
+  { value: "classic", label: "Классика" },
+  { value: "blast", label: "Взрыв" },
+  { value: "vault", label: "Банковский" },
+  { value: "flash", label: "Вспышка" },
+];
+
+export const WRONG_PRESET_OPTIONS: { value: WrongPreset; label: string }[] = [
+  { value: "shake", label: "Тряска" },
+  { value: "cop", label: "Коп с палкой" },
+  { value: "siren", label: "Сирена" },
+  { value: "lightning", label: "Молния" },
+  { value: "bomb", label: "Бомба-пукалка" },
+];
+
+export const DOOR_SOUND_OPTIONS: { value: DoorSound; label: string }[] = [
+  { value: "off", label: "Тишина" },
+  { value: "creak", label: "Скрип" },
+  { value: "metal", label: "Лязг" },
+  { value: "magic", label: "Магия" },
 ];
 
 export type Stone = { color: string; shine: string };
