@@ -1,0 +1,186 @@
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import { SafeVisual } from "../components/SafeVisual";
+import { useSafeSocket } from "../useSafeSocket";
+
+const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
+
+export function SafeHostPage() {
+  const { connected, state, hostCode, lastError, send } = useSafeSocket("safe-host");
+  const [codeInput, setCodeInput] = useState("000");
+  const [toast, setToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (hostCode) setCodeInput(hostCode);
+  }, [hostCode]);
+
+  const boardUrl = useMemo(() => `${window.location.origin}/safe/board?chroma=1`, []);
+  const boardPreviewUrl = useMemo(() => `${window.location.origin}/safe/board`, []);
+
+  const copy = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      setToast("Скопировано");
+      setTimeout(() => setToast(null), 1200);
+    } catch {
+      setToast("Не удалось скопировать");
+      setTimeout(() => setToast(null), 2000);
+    }
+  };
+
+  const applyCode = () => {
+    const code = codeInput.replace(/\D/g, "").padStart(3, "0").slice(0, 3);
+    setCodeInput(code);
+    send({ type: "safeSetCode", code });
+  };
+
+  const randomCode = () => {
+    send({ type: "safeRandomCode" });
+  };
+
+  const arm = () => {
+    send({ type: "safeArm" });
+  };
+
+  const reset = () => {
+    send({ type: "safeReset" });
+  };
+
+  const clearEntry = () => {
+    send({ type: "safeClear" });
+  };
+
+  const pressDigit = (digit: string) => {
+    send({ type: "safeDigit", digit });
+  };
+
+  const onCodeChange = (raw: string) => {
+    const digits = raw.replace(/\D/g, "").slice(0, 3);
+    setCodeInput(digits);
+    if (digits.length === 3) {
+      send({ type: "safeSetCode", code: digits });
+    }
+  };
+
+  const phase = state?.phase ?? "idle";
+  const display = state?.display ?? ["-", "-", "-"];
+  const canEnter = phase === "armed" || phase === "fail";
+
+  return (
+    <div className="host safe-host">
+      <header className="host__header">
+        <div>
+          <h1 className="host__title">Сейф — панель ведущего</h1>
+          <p className="host__sub">
+            Трёхзначный код · ввод с клавиатуры как на домофоне · табло для OBS с хромакеем
+          </p>
+          <p className="host__sub">
+            <Link to="/host">← Поле чудес</Link>
+          </p>
+        </div>
+        <div className={`host__pill ${connected ? "host__pill--ok" : "host__pill--bad"}`}>
+          {connected ? "онлайн" : "offline"}
+        </div>
+      </header>
+
+      {toast && <div className="host__toast">{toast}</div>}
+      {lastError && <div className="host__warn">Ошибка: {lastError}</div>}
+
+      <section className={`card host-live ${phase !== "idle" ? "host-live--active" : ""}`}>
+        <div className="host-live__top">
+          <span className={`host-live__badge ${phase !== "idle" ? "host-live__badge--on" : ""}`}>
+            {phase === "idle" && "Сейф выключен"}
+            {phase === "armed" && "Ввод кода"}
+            {phase === "fail" && "Неверный код"}
+            {phase === "success" && "Открыто!"}
+          </span>
+          {hostCode && phase !== "idle" && (
+            <span className="host-live__progress">Правильный код: {hostCode}</span>
+          )}
+        </div>
+        <div className="safe-host-preview">
+          <SafeVisual display={display} phase={phase} compact />
+        </div>
+      </section>
+
+      <section className="card">
+        <h2 className="card__h">Код сейфа</h2>
+        <label className="label" htmlFor="safe-code">
+          Три цифры
+        </label>
+        <input
+          id="safe-code"
+          className="safe-code-input"
+          inputMode="numeric"
+          maxLength={3}
+          value={codeInput}
+          onChange={(e) => onCodeChange(e.target.value)}
+          onBlur={applyCode}
+          placeholder="000"
+        />
+        <div className="row">
+          <button type="button" className="btn" onClick={applyCode}>
+            Применить код
+          </button>
+          <button type="button" className="btn" onClick={randomCode}>
+            Случайный код
+          </button>
+        </div>
+        <div className="row">
+          <button type="button" className="btn btn--primary" onClick={arm}>
+            Активировать сейф
+          </button>
+          <button type="button" className="btn" onClick={reset}>
+            Сбросить
+          </button>
+        </div>
+        <p className="muted">
+          После «Активировать» на табло появится сейф с «- - -». Вводите цифры ниже — они синхронно
+          появятся на OBS.
+        </p>
+      </section>
+
+      <section className="card">
+        <h2 className="card__h">Ввод (домофон)</h2>
+        <div className="numpad">
+          {DIGITS.map((d) => (
+            <button
+              key={d}
+              type="button"
+              className="numpad__key"
+              disabled={!canEnter}
+              onClick={() => pressDigit(d)}
+            >
+              {d}
+            </button>
+          ))}
+        </div>
+        <div className="row">
+          <button type="button" className="btn" disabled={!canEnter} onClick={clearEntry}>
+            Стереть ввод
+          </button>
+        </div>
+        {phase === "success" && (
+          <p className="host__fb">Сейф открыт — нажмите «Сбросить» для нового розыгрыша.</p>
+        )}
+      </section>
+
+      <section className="card">
+        <h2 className="card__h">Ссылка для OBS</h2>
+        <p className="muted">
+          Для хромакея используйте зелёный фон. В OBS: источник «Браузер» → URL ниже → фильтр «Хромакей»
+          (#00ff00).
+        </p>
+        <div className="mono">{boardUrl}</div>
+        <div className="row">
+          <button type="button" className="btn btn--primary" onClick={() => void copy(boardUrl)}>
+            Скопировать (с хромакеем)
+          </button>
+          <button type="button" className="btn" onClick={() => void copy(boardPreviewUrl)}>
+            Скопировать без хромакея
+          </button>
+        </div>
+      </section>
+    </div>
+  );
+}

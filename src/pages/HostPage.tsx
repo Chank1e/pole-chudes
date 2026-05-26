@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { useGameSocket } from "../useGameSocket";
 import { normalizeLetter } from "../ru";
 import { BOARD_PRESET_CSS, BOARD_PRESET_META } from "../boardTheme";
@@ -120,6 +121,9 @@ export function HostPage() {
         <div>
           <h1 className="host__title">Панель ведущего</h1>
           <p className="host__sub">Фраза по умолчанию на русском · буквы Ё/Е совпадают при проверке</p>
+          <p className="host__sub">
+            <Link to="/safe/host">Сейф с кодом →</Link>
+          </p>
         </div>
         <div className={`host__pill ${connected ? "host__pill--ok" : "host__pill--bad"}`}>
           {connected ? "онлайн" : "offline"}

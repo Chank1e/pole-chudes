@@ -16,6 +16,17 @@ import {
 import { createStaticHandler } from "./static.mjs";
 import { normalizeBoardBackground } from "./boardTheme.mjs";
 import { DEFAULT_TILE_THEME, normalizeTileTheme } from "./tileTheme.mjs";
+import {
+  appendSafeDigit,
+  armSafe,
+  clearSafeEntry,
+  createIdleSafe,
+  buildSafeState,
+  randomCode,
+  recoverAfterFail,
+  resetSafe,
+  setSafeCode,
+} from "./safe.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, "..");
@@ -58,8 +69,35 @@ let tileTheme = { ...DEFAULT_TILE_THEME };
 /** @type {{ cells: import('./game.mjs').Cell[]; guessed: Set<string>; wrongGuesses: Set<string> } | null} */
 let model = null;
 
+/** @type {import('./safe.mjs').SafeModel} */
+let safeModel = createIdleSafe();
+
+/** @type {ReturnType<typeof setTimeout> | null} */
+let safeFailTimer = null;
+
 /** @type {import('ws').WebSocket[]} */
 const sockets = [];
+
+/** @param {import('ws').WebSocket} ws */
+function isPoleClient(ws) {
+  return ws.clientRole === "host" || ws.clientRole === "board";
+}
+
+/** @param {import('ws').WebSocket} ws */
+function isSafeClient(ws) {
+  return ws.clientRole === "safe-host" || ws.clientRole === "safe-board";
+}
+
+function scheduleSafeFailRecovery() {
+  if (safeFailTimer) clearTimeout(safeFailTimer);
+  safeFailTimer = setTimeout(() => {
+    safeFailTimer = null;
+    if (safeModel.phase === "fail") {
+      recoverAfterFail(safeModel);
+      broadcastSafeState();
+    }
+  }, 2800);
+}
 
 /**
  * @param {import('./game.mjs').Cell[]} cells
@@ -116,16 +154,29 @@ function statePayloadFor(ws, overridePublic) {
 function broadcastStateAll(overridePublic) {
   for (const ws of sockets) {
     if (ws.readyState !== 1) continue;
+    if (!isPoleClient(ws)) continue;
     ws.send(JSON.stringify(statePayloadFor(ws, overridePublic)));
   }
 }
 
 function sendState(ws) {
-  ws.send(JSON.stringify(statePayloadFor(ws)));
+  if (isPoleClient(ws)) {
+    ws.send(JSON.stringify(statePayloadFor(ws)));
+  } else if (isSafeClient(ws)) {
+    ws.send(JSON.stringify(buildSafeState(safeModel, ws.clientRole === "safe-host")));
+  }
 }
 
 function broadcastState() {
   broadcastStateAll(undefined);
+}
+
+function broadcastSafeState() {
+  for (const ws of sockets) {
+    if (ws.readyState !== 1) continue;
+    if (!isSafeClient(ws)) continue;
+    ws.send(JSON.stringify(buildSafeState(safeModel, ws.clientRole === "safe-host")));
+  }
 }
 
 /**
@@ -197,11 +248,21 @@ const server = http.createServer(async (req, res) => {
 
 const wss = new WebSocketServer({ server });
 
+/**
+ * @param {string | null} roleParam
+ */
+function resolveClientRole(roleParam) {
+  if (roleParam === "host") return "host";
+  if (roleParam === "safe-host") return "safe-host";
+  if (roleParam === "safe-board") return "safe-board";
+  return "board";
+}
+
 wss.on("connection", (ws, req) => {
   let clientRole = "board";
   try {
     const u = new URL(req.url || "/", "http://127.0.0.1");
-    if (u.searchParams.get("role") === "host") clientRole = "host";
+    clientRole = resolveClientRole(u.searchParams.get("role"));
   } catch {
     /* ignore */
   }
@@ -221,8 +282,71 @@ wss.on("connection", (ws, req) => {
     if (!msg || typeof msg !== "object") return;
 
     if (msg.type === "clientHello") {
-      ws.clientRole = msg.role === "host" ? "host" : "board";
+      const role = msg.role;
+      ws.clientRole =
+        role === "host"
+          ? "host"
+          : role === "safe-host"
+            ? "safe-host"
+            : role === "safe-board"
+              ? "safe-board"
+              : "board";
       sendState(ws);
+      return;
+    }
+
+    if (msg.type === "safeSetCode" && typeof msg.code === "string") {
+      const result = setSafeCode(safeModel, msg.code);
+      if (!result.ok) {
+        ws.send(JSON.stringify({ type: "error", message: result.error }));
+        return;
+      }
+      broadcastSafeState();
+      return;
+    }
+
+    if (msg.type === "safeRandomCode") {
+      safeModel.code = randomCode();
+      broadcastSafeState();
+      return;
+    }
+
+    if (msg.type === "safeArm") {
+      armSafe(safeModel);
+      broadcastSafeState();
+      return;
+    }
+
+    if (msg.type === "safeReset") {
+      if (safeFailTimer) {
+        clearTimeout(safeFailTimer);
+        safeFailTimer = null;
+      }
+      resetSafe(safeModel);
+      broadcastSafeState();
+      return;
+    }
+
+    if (msg.type === "safeClear") {
+      if (safeFailTimer) {
+        clearTimeout(safeFailTimer);
+        safeFailTimer = null;
+      }
+      clearSafeEntry(safeModel);
+      broadcastSafeState();
+      return;
+    }
+
+    if (msg.type === "safeDigit" && typeof msg.digit === "string") {
+      const result = appendSafeDigit(safeModel, msg.digit);
+      if (!result.ok) {
+        ws.send(JSON.stringify({ type: "error", message: result.error }));
+        return;
+      }
+      broadcastSafeState();
+      if (result.result === "wrong") {
+        scheduleSafeFailRecovery();
+      }
       return;
     }
 
@@ -289,6 +413,9 @@ server.listen(PORT, HOST, () => {
     console.log(`[pole-chudes] static root: ${distDir}`);
     // eslint-disable-next-line no-console
     console.log(`[pole-chudes] board: http://127.0.0.1:${PORT}/board  host: http://127.0.0.1:${PORT}/host`);
+    console.log(
+      `[pole-chudes] safe: http://127.0.0.1:${PORT}/safe/board?chroma=1  host: http://127.0.0.1:${PORT}/safe/host`,
+    );
   } else {
     // eslint-disable-next-line no-console
     console.log(`[pole-chudes] dev: Vite UI http://127.0.0.1:5173/ (API/WS proxied to this port)`);
