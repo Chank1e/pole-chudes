@@ -1,16 +1,12 @@
-import { useCallback, useRef } from "react";
+import { useCallback } from "react";
+import { ensureAudioContext } from "./audio";
 
 /** Short buzz via Web Audio — no external assets. */
 export function useRejectSound() {
-  const ctxRef = useRef<AudioContext | null>(null);
-
-  const play = useCallback(() => {
+  const play = useCallback(async () => {
     try {
-      const Ctx = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
-      if (!Ctx) return;
-      if (!ctxRef.current) ctxRef.current = new Ctx();
-      const ctx = ctxRef.current;
-      if (ctx.state === "suspended") void ctx.resume();
+      const ctx = await ensureAudioContext();
+      if (!ctx) return;
 
       const now = ctx.currentTime;
       const osc = ctx.createOscillator();
@@ -30,5 +26,7 @@ export function useRejectSound() {
     }
   }, []);
 
-  return play;
+  return () => {
+    void play();
+  };
 }

@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { DiamondRain } from "../components/DiamondRain";
+import { SafeTreasureBurst } from "../components/SafeTreasureBurst";
 import { SafeVisual } from "../components/SafeVisual";
 import { useRejectSound } from "../safe/useRejectSound";
+import { useVictorySound } from "../safe/useVictorySound";
 import { useSafeSocket } from "../useSafeSocket";
 
 export function SafeBoardPage() {
@@ -10,13 +11,23 @@ export function SafeBoardPage() {
   const chroma = params.get("chroma") === "1";
   const { connected, state } = useSafeSocket("safe-board");
   const playReject = useRejectSound();
+  const playVictory = useVictorySound();
   const stageRef = useRef<HTMLDivElement>(null);
   const lastEventSeqRef = useRef(0);
+  const victoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const burstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [popIndex, setPopIndex] = useState<number | null>(null);
-  const [showRain, setShowRain] = useState(false);
+  const [showBurst, setShowBurst] = useState(false);
 
   const display = state?.display ?? ["-", "-", "-"];
   const phase = state?.phase ?? "idle";
+
+  useEffect(() => {
+    return () => {
+      if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
+      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
+    };
+  }, []);
 
   useEffect(() => {
     if (!state) return;
@@ -34,18 +45,34 @@ export function SafeBoardPage() {
     if (ev.type === "wrong") {
       playReject();
       setPopIndex(null);
+      setShowBurst(false);
+      if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
+      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
       return;
     }
     if (ev.type === "success") {
-      setShowRain(true);
       setPopIndex(null);
+      setShowBurst(false);
+
+      if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
+      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
+
+      victoryTimerRef.current = setTimeout(() => {
+        void playVictory();
+      }, 920);
+
+      burstTimerRef.current = setTimeout(() => {
+        setShowBurst(true);
+      }, 1100);
       return;
     }
     if (ev.type === "reset") {
-      setShowRain(false);
+      setShowBurst(false);
       setPopIndex(null);
+      if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
+      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
     }
-  }, [state, playReject]);
+  }, [state, playReject, playVictory]);
 
   const rootClass = useMemo(
     () => `safe-board-root ${chroma ? "safe-board-root--chroma" : ""}`,
@@ -70,7 +97,12 @@ export function SafeBoardPage() {
 
         <div className="safe-board__stage" ref={stageRef}>
           <SafeVisual display={display} phase={phase} popIndex={popIndex} />
-          <DiamondRain anchorRef={stageRef} active={showRain && phase === "success"} />
+          <SafeTreasureBurst
+            anchorRef={stageRef}
+            originX={0.5}
+            originY={0.54}
+            active={showBurst && phase === "success"}
+          />
         </div>
       </div>
     </div>

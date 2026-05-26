@@ -74,10 +74,10 @@
   place-items: center;
 }
 
-.diamond-rain {
+.safe-treasure-burst {
   position: absolute;
   inset: 0;
-  z-index: 6;
+  z-index: 8;
   pointer-events: none;
 }
 
@@ -88,7 +88,7 @@
   aspect-ratio: 0.92;
   z-index: 2;
   filter: drop-shadow(0 28px 50px rgba(0, 0, 0, 0.55));
-  transition: filter 400ms ease;
+  transition: filter 500ms ease;
 }
 
 .safe-visual--compact {
@@ -107,8 +107,36 @@
     0 0 48px rgba(255, 50, 80, 0.55);
 }
 
+.safe-visual--unlocking .safe-visual__dial {
+  animation: safe-dial-unlock 0.55s ease-out;
+}
+
+.safe-visual--unlocking .safe-visual__handle {
+  animation: safe-handle-turn 0.7s ease-in-out 0.15s;
+}
+
 .safe-visual--open .safe-visual__door {
-  transform: perspective(900px) rotateY(-108deg);
+  animation: safe-door-open 1.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.safe-visual--open .safe-visual__body {
+  animation: safe-body-glow 2s ease-out forwards;
+}
+
+.safe-visual--open .safe-visual__inner-glow {
+  animation: safe-inner-glow 1.8s ease-out 0.35s forwards;
+}
+
+.safe-visual--open .safe-visual__treasure-pile {
+  animation: safe-pile-reveal 1.2s cubic-bezier(0.2, 0.9, 0.2, 1) 0.45s forwards;
+}
+
+.safe-visual--open .safe-visual__light-burst {
+  animation: safe-light-burst 1.4s ease-out 0.5s forwards;
+}
+
+.safe-visual--open .safe-visual__sparkles {
+  opacity: 1;
 }
 
 .safe-visual__shadow {
@@ -129,7 +157,7 @@
   box-shadow:
     inset 0 2px 0 rgba(255, 255, 255, 0.12),
     inset 0 -8px 24px rgba(0, 0, 0, 0.45);
-  transition: box-shadow 400ms ease;
+  overflow: hidden;
 }
 
 .safe-visual__rim {
@@ -138,14 +166,68 @@
   border-radius: 12px;
   border: 2px solid rgba(255, 255, 255, 0.08);
   pointer-events: none;
+  z-index: 4;
+}
+
+.safe-visual__interior {
+  position: absolute;
+  inset: 14% 12% 14%;
+  z-index: 1;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #0c1018 0%, #060810 100%);
+  overflow: hidden;
+  box-shadow: inset 0 0 40px rgba(0, 0, 0, 0.8);
+}
+
+.safe-visual__inner-glow {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    ellipse 80% 70% at 50% 85%,
+    rgba(56, 189, 248, 0.45),
+    rgba(246, 211, 101, 0.2) 35%,
+    transparent 70%
+  );
+  opacity: 0;
+  transform: scale(0.85);
+}
+
+.safe-visual__treasure-pile {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  transform: translateY(12px) scale(0.92);
+}
+
+.safe-visual__pile-gem {
+  position: absolute;
+  display: block;
+  transform: rotate(45deg) scale(0);
+  border-radius: 3px;
+  background: linear-gradient(
+    135deg,
+    hsl(var(--gem-hue, 195), 90%, 72%),
+    hsl(calc(var(--gem-hue, 195) + 18), 100%, 88%),
+    hsl(calc(var(--gem-hue, 195) + 6), 85%, 42%)
+  );
+  box-shadow:
+    0 0 12px hsla(var(--gem-hue, 195), 90%, 65%, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.45);
+  animation: safe-pile-gem-rise 0.7s cubic-bezier(0.2, 0.9, 0.2, 1) backwards;
+}
+
+.safe-visual--open .safe-visual__pile-gem {
+  animation: safe-pile-gem-rise 0.7s cubic-bezier(0.2, 0.9, 0.2, 1) backwards,
+    safe-pile-gem-shimmer 2.4s ease-in-out 1.2s infinite;
 }
 
 .safe-visual__door {
   position: absolute;
   inset: 14% 12% 14%;
-  transform-origin: left center;
-  transition: transform 900ms cubic-bezier(0.2, 0.85, 0.2, 1);
+  z-index: 3;
+  transform-origin: 6% 50%;
   transform-style: preserve-3d;
+  transform: perspective(1200px) rotateY(0deg);
 }
 
 .safe-visual__door-inner {
@@ -154,9 +236,24 @@
   border-radius: 12px;
   background: linear-gradient(160deg, #6d757d 0%, #3b4248 50%, #252a2f 100%);
   border: 2px solid #a8b0b8;
-  box-shadow: inset 0 0 30px rgba(0, 0, 0, 0.35);
+  box-shadow:
+    inset 0 0 30px rgba(0, 0, 0, 0.35),
+    4px 0 20px rgba(0, 0, 0, 0.25);
   display: grid;
   place-items: center;
+  backface-visibility: hidden;
+}
+
+.safe-visual__door-edge {
+  position: absolute;
+  left: 0;
+  top: 8%;
+  bottom: 8%;
+  width: 6px;
+  border-radius: 3px;
+  background: linear-gradient(180deg, #d4dce3, #6b7280);
+  box-shadow: 2px 0 8px rgba(0, 0, 0, 0.35);
+  transform: translateX(-50%);
 }
 
 .safe-visual__handle {
@@ -169,6 +266,7 @@
   border-radius: 8px;
   background: linear-gradient(90deg, #c9a227, #f6d365, #c9a227);
   box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  transform-origin: center center;
 }
 
 .safe-visual__dial {
@@ -228,27 +326,87 @@
   right: 10%;
 }
 
-.safe-visual__loot {
+.safe-visual__light-burst {
   position: absolute;
-  inset: 20% 18% auto;
-  display: flex;
-  justify-content: center;
-  gap: 8px;
+  inset: 10% 8%;
+  z-index: 2;
+  border-radius: 14px;
+  background: radial-gradient(
+    circle at 35% 55%,
+    rgba(255, 255, 255, 0.55),
+    rgba(246, 211, 101, 0.25) 25%,
+    transparent 55%
+  );
   opacity: 0;
   pointer-events: none;
 }
 
-.safe-visual--open .safe-visual__loot {
-  opacity: 1;
+.safe-visual__sparkles {
+  position: absolute;
+  inset: 14% 12% 14%;
+  z-index: 5;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 400ms ease;
 }
 
-.safe-visual__gem {
-  width: 14px;
-  height: 18px;
-  background: linear-gradient(135deg, #7df9ff, #38bdf8, #0369a1);
-  transform: rotate(45deg);
-  border-radius: 2px;
-  animation: safe-gem-pop 700ms ease-out backwards;
+.safe-visual__spark {
+  position: absolute;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #fff;
+  box-shadow: 0 0 10px #f6d365, 0 0 18px #7df9ff;
+  animation: safe-spark-fly 1.2s ease-out backwards;
+}
+
+.safe-visual__spark:nth-child(1) {
+  left: 18%;
+  top: 30%;
+  --sx: -16px;
+  --sy: -22px;
+}
+.safe-visual__spark:nth-child(2) {
+  left: 72%;
+  top: 25%;
+  --sx: 20px;
+  --sy: -18px;
+}
+.safe-visual__spark:nth-child(3) {
+  left: 45%;
+  top: 18%;
+  --sx: 4px;
+  --sy: -28px;
+}
+.safe-visual__spark:nth-child(4) {
+  left: 28%;
+  top: 55%;
+  --sx: -12px;
+  --sy: 14px;
+}
+.safe-visual__spark:nth-child(5) {
+  left: 65%;
+  top: 50%;
+  --sx: 18px;
+  --sy: 12px;
+}
+.safe-visual__spark:nth-child(6) {
+  left: 50%;
+  top: 40%;
+  --sx: 0px;
+  --sy: -20px;
+}
+.safe-visual__spark:nth-child(7) {
+  left: 12%;
+  top: 42%;
+  --sx: -22px;
+  --sy: 8px;
+}
+.safe-visual__spark:nth-child(8) {
+  left: 82%;
+  top: 38%;
+  --sx: 24px;
+  --sy: 6px;
 }
 
 @keyframes safe-digit-pop {
@@ -284,14 +442,124 @@
   }
 }
 
-@keyframes safe-gem-pop {
+@keyframes safe-door-open {
+  0% {
+    transform: perspective(1200px) rotateY(0deg);
+  }
+  8% {
+    transform: perspective(1200px) rotateY(-6deg);
+  }
+  100% {
+    transform: perspective(1200px) rotateY(-118deg);
+  }
+}
+
+@keyframes safe-dial-unlock {
+  0%,
+  100% {
+    box-shadow: inset 0 4px 12px rgba(0, 0, 0, 0.5);
+  }
+  50% {
+    box-shadow:
+      inset 0 4px 12px rgba(0, 0, 0, 0.5),
+      0 0 24px rgba(246, 211, 101, 0.85);
+  }
+}
+
+@keyframes safe-handle-turn {
+  0% {
+    transform: rotate(0deg);
+  }
+  40% {
+    transform: rotate(-28deg);
+  }
+  100% {
+    transform: rotate(-12deg);
+  }
+}
+
+@keyframes safe-body-glow {
+  0% {
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -8px 24px rgba(0, 0, 0, 0.45);
+  }
+  40% {
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -8px 24px rgba(0, 0, 0, 0.45),
+      0 0 60px rgba(56, 189, 248, 0.35),
+      0 0 40px rgba(246, 211, 101, 0.25);
+  }
+  100% {
+    box-shadow:
+      inset 0 2px 0 rgba(255, 255, 255, 0.12),
+      inset 0 -8px 24px rgba(0, 0, 0, 0.45),
+      0 0 30px rgba(56, 189, 248, 0.2);
+  }
+}
+
+@keyframes safe-inner-glow {
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes safe-pile-reveal {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes safe-pile-gem-rise {
   from {
-    transform: translateY(12px) rotate(45deg) scale(0);
+    transform: rotate(45deg) scale(0);
     opacity: 0;
   }
   to {
-    transform: translateY(0) rotate(45deg) scale(1);
+    transform: rotate(45deg) scale(1);
     opacity: 1;
+  }
+}
+
+@keyframes safe-pile-gem-shimmer {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.35);
+  }
+}
+
+@keyframes safe-light-burst {
+  0% {
+    opacity: 0;
+    transform: scale(0.6);
+  }
+  25% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+  100% {
+    opacity: 0.35;
+    transform: scale(1);
+  }
+}
+
+@keyframes safe-spark-fly {
+  from {
+    transform: scale(0) translate(0, 0);
+    opacity: 0;
+  }
+  30% {
+    opacity: 1;
+  }
+  to {
+    transform: scale(1) translate(var(--sx, 12px), var(--sy, -18px));
+    opacity: 0;
   }
 }
 
