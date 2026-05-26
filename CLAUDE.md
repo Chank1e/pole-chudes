@@ -44,8 +44,12 @@ safe-visual__body
 
 ## Запуск
 
-- Dev: `npm run dev` — UI :5173, WS/API :3847
-- Prod: `npm run serve` — :8080
+- Dev: `npm run dev` — **открывать только** http://127.0.0.1:5173/ (не 3847, не 5163)
+  - UI (Vite): порт **5173**
+  - API + WebSocket: порт **3847** (прокси с 5173)
+  - Vite стартует **только после** успешного старта бэкенда
+- Если «пустая страница» или `EADDRINUSE`: `npm run dev:kill`, затем снова `npm run dev`
+- Prod: `npm run serve` — всё на :8080 (`/board`, `/host`, `/safe/...`)
 
 ## WebSocket роли
 

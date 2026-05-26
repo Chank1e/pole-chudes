@@ -47,6 +47,7 @@ function resolveListenPort() {
 
 const PORT = resolveListenPort();
 const HOST = process.env.POLE_HOST || (isDev ? "127.0.0.1" : "0.0.0.0");
+const VITE_DEV_PORT = Number(process.env.VITE_PORT) || 5173;
 
 const API_KEY = process.env.POLE_API_KEY || randomBytes(12).toString("hex");
 
@@ -242,6 +243,15 @@ const server = http.createServer(async (req, res) => {
     if (handled) return;
   }
 
+  if (isDev && req.method === "GET" && !url.pathname.startsWith("/api")) {
+    const target = `http://127.0.0.1:${VITE_DEV_PORT}${url.pathname}${url.search}`;
+    res.writeHead(302, { Location: target, "Content-Type": "text/html; charset=utf-8" });
+    res.end(
+      `<!doctype html><html lang="ru"><head><meta charset="utf-8"><meta http-equiv="refresh" content="0;url=${target}"><title>Dev</title></head><body><p>UI в dev только на Vite. Переход: <a href="${target}">${target}</a></p></body></html>`,
+    );
+    return;
+  }
+
   res.writeHead(404);
   res.end();
 });
@@ -405,6 +415,32 @@ wss.on("connection", (ws, req) => {
   });
 });
 
+/** @type {import('node:child_process').ChildProcess | null} */
+let vite = null;
+
+function startViteDev() {
+  vite = spawn("npx", ["vite", "--host", "0.0.0.0", "--port", String(VITE_DEV_PORT)], {
+    cwd: root,
+    stdio: "inherit",
+    shell: true,
+    env: { ...process.env },
+  });
+
+  vite.on("exit", (code) => {
+    if (code && code !== 0) process.exit(code ?? 1);
+  });
+}
+
+server.on("error", (err) => {
+  // eslint-disable-next-line no-console
+  console.error(`[pole-chudes] cannot listen on ${HOST}:${PORT}: ${err.message}`);
+  if (/** @type {NodeJS.ErrnoException} */ (err).code === "EADDRINUSE") {
+    // eslint-disable-next-line no-console
+    console.error(`[pole-chudes] порт занят. Освободи: lsof -ti :${PORT} :${VITE_DEV_PORT} | xargs kill`);
+  }
+  process.exit(1);
+});
+
 server.listen(PORT, HOST, () => {
   // eslint-disable-next-line no-console
   console.log(`[pole-chudes] listening on ${HOST}:${PORT} — static UI, /api/guess, WebSocket /ws`);
@@ -417,28 +453,19 @@ server.listen(PORT, HOST, () => {
       `[pole-chudes] safe: http://127.0.0.1:${PORT}/safe/board?chroma=1  host: http://127.0.0.1:${PORT}/safe/host`,
     );
   } else {
+    startViteDev();
     // eslint-disable-next-line no-console
-    console.log(`[pole-chudes] dev: Vite UI http://127.0.0.1:5173/ (API/WS proxied to this port)`);
+    console.log(`[pole-chudes] dev UI:  http://127.0.0.1:${VITE_DEV_PORT}/`);
+    // eslint-disable-next-line no-console
+    console.log(`[pole-chudes] dev host: http://127.0.0.1:${VITE_DEV_PORT}/host`);
+    // eslint-disable-next-line no-console
+    console.log(`[pole-chudes] dev safe: http://127.0.0.1:${VITE_DEV_PORT}/safe/host`);
+    // eslint-disable-next-line no-console
+    console.log(`[pole-chudes] API/WS проксируются с :${VITE_DEV_PORT} → :${PORT}`);
   }
   // eslint-disable-next-line no-console
   console.log(`[pole-chudes] API key (for Nightbot/customapi): ${API_KEY}`);
 });
-
-/** @type {import('node:child_process').ChildProcess | null} */
-let vite = null;
-
-if (isDev) {
-  vite = spawn("npx", ["vite", "--host", "0.0.0.0", "--port", "5173"], {
-    cwd: root,
-    stdio: "inherit",
-    shell: true,
-    env: { ...process.env },
-  });
-
-  vite.on("exit", (code) => {
-    if (code && code !== 0) process.exit(code ?? 1);
-  });
-}
 
 function shutdown() {
   if (vite) {
