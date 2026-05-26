@@ -1,18 +1,18 @@
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { SafeVisual } from "../components/SafeVisual";
+import { useRandomCodeRoll } from "../safe/useRandomCodeRoll";
 import { useSafeSocket } from "../useSafeSocket";
 
 const DIGITS = ["1", "2", "3", "4", "5", "6", "7", "8", "9", "0"];
 
 export function SafeHostPage() {
   const { connected, state, hostCode, lastError, send } = useSafeSocket("safe-host");
-  const [codeInput, setCodeInput] = useState("000");
+  const { codeInput, setCodeInput, rolling, previewDisplay, startRoll } = useRandomCodeRoll(
+    hostCode,
+    send,
+  );
   const [toast, setToast] = useState<string | null>(null);
-
-  useEffect(() => {
-    if (hostCode) setCodeInput(hostCode);
-  }, [hostCode]);
 
   const boardUrl = useMemo(() => `${window.location.origin}/safe/board?chroma=1`, []);
   const boardPreviewUrl = useMemo(() => `${window.location.origin}/safe/board`, []);
@@ -34,9 +34,6 @@ export function SafeHostPage() {
     send({ type: "safeSetCode", code });
   };
 
-  const randomCode = () => {
-    send({ type: "safeRandomCode" });
-  };
 
   const arm = () => {
     send({ type: "safeArm" });
@@ -63,7 +60,8 @@ export function SafeHostPage() {
   };
 
   const phase = state?.phase ?? "idle";
-  const display = state?.display ?? ["-", "-", "-"];
+  const boardDisplay = state?.display ?? ["-", "-", "-"];
+  const previewDial = previewDisplay ?? boardDisplay;
   const canEnter = phase === "armed" || phase === "fail";
 
   return (
@@ -98,8 +96,8 @@ export function SafeHostPage() {
             <span className="host-live__progress">Правильный код: {hostCode}</span>
           )}
         </div>
-        <div className="safe-host-preview">
-          <SafeVisual display={display} phase={phase} compact />
+        <div className={`safe-host-preview ${rolling ? "safe-host-preview--rolling" : ""}`}>
+          <SafeVisual display={previewDial} phase={phase} compact digitsRolling={rolling} />
         </div>
       </section>
 
@@ -110,20 +108,22 @@ export function SafeHostPage() {
         </label>
         <input
           id="safe-code"
-          className="safe-code-input"
+          className={`safe-code-input ${rolling ? "safe-code-input--rolling" : ""}`}
           inputMode="numeric"
           maxLength={3}
           value={codeInput}
           onChange={(e) => onCodeChange(e.target.value)}
           onBlur={applyCode}
           placeholder="000"
+          disabled={rolling}
+          readOnly={rolling}
         />
         <div className="row">
-          <button type="button" className="btn" onClick={applyCode}>
+          <button type="button" className="btn" onClick={applyCode} disabled={rolling}>
             Применить код
           </button>
-          <button type="button" className="btn" onClick={randomCode}>
-            Случайный код
+          <button type="button" className="btn" onClick={startRoll} disabled={rolling}>
+            {rolling ? "Крутим…" : "Случайный код"}
           </button>
         </div>
         <div className="row">

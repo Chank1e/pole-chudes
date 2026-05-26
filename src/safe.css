@@ -146,14 +146,12 @@
 .safe-visual--open .safe-visual__mountain {
   opacity: 1;
   visibility: visible;
-  transform: scale(1);
-  animation: safe-mountain-reveal 1s cubic-bezier(0.2, 0.9, 0.2, 1) 0.55s forwards;
 }
 
-.safe-visual--open .safe-visual__mountain-gem {
-  animation: safe-mountain-gem-pop 0.65s cubic-bezier(0.2, 0.9, 0.2, 1) backwards forwards,
-    safe-mountain-gem-shimmer 2.2s ease-in-out 1.1s infinite;
+.safe-visual--open .safe-visual__mountain-stack {
+  animation: safe-mountain-erupt 1.1s cubic-bezier(0.15, 0.95, 0.2, 1) 0.5s forwards;
 }
+
 
 .safe-visual--open .safe-visual__light-burst {
   animation: safe-light-burst 1.4s ease-out 0.5s forwards;
@@ -211,10 +209,10 @@
   inset: 0;
   z-index: 0;
   background: radial-gradient(
-    ellipse 85% 75% at 50% 88%,
-    rgba(56, 189, 248, 0.4),
-    rgba(180, 83, 9, 0.15) 45%,
-    transparent 68%
+    ellipse 90% 80% at 50% 92%,
+    rgba(56, 189, 248, 0.5),
+    rgba(14, 116, 144, 0.25) 45%,
+    transparent 70%
   );
   opacity: 0;
   pointer-events: none;
@@ -225,13 +223,6 @@
   animation: safe-inner-glow 1.2s ease-out 0.4s forwards;
 }
 
-.safe-visual__burst-canvas {
-  position: absolute;
-  inset: 0;
-  z-index: 4;
-  pointer-events: none;
-}
-
 /* Гора алмазов — только внутри interior */
 .safe-visual__mountain {
   position: absolute;
@@ -240,41 +231,83 @@
   pointer-events: none;
   opacity: 0;
   visibility: hidden;
-  transform: scale(0.9);
 }
 
-.safe-visual__mountain-base {
+.safe-visual__mountain-stack {
   position: absolute;
-  left: 2%;
-  right: 2%;
+  left: 0;
+  right: 0;
   bottom: 0;
-  height: 68%;
-  z-index: 1;
-  border-radius: 50% 50% 10% 10% / 55% 55% 6% 6%;
-  background: #b45309;
-  box-shadow: inset 0 10px 18px rgba(255, 220, 120, 0.35), inset 0 -8px 16px rgba(0, 0, 0, 0.45);
-  opacity: 0;
-  transform: translateY(16px) scale(0.75);
+  height: 92%;
+  transform: translateY(55%) scale(0.55);
+  transform-origin: center bottom;
 }
 
-.safe-visual--open .safe-visual__mountain-base {
-  animation: safe-mountain-base-rise 0.9s cubic-bezier(0.2, 0.9, 0.2, 1) 0.5s forwards;
-}
-
-.safe-visual__mountain-gems {
-  position: absolute;
-  inset: 0;
-  z-index: 2;
-  overflow: hidden;
-}
-
-.safe-visual__mountain-gem {
+/* --- Крупный алмаз --- */
+.diamond-gem {
   position: absolute;
   display: block;
-  transform: rotate(45deg) scale(0);
   opacity: 0;
-  border-radius: 3px;
+  transform: scale(0);
+  transform-origin: center bottom;
+}
+
+.safe-visual--open .diamond-gem {
+  animation: safe-diamond-slot 0.85s cubic-bezier(0.2, 0.9, 0.2, 1) backwards;
+  animation-delay: var(--dg-delay, 0s);
+}
+
+.diamond-gem__inner {
+  position: absolute;
+  inset: 0;
+  transform: rotate(45deg);
+  transform-origin: center center;
+}
+
+.safe-visual--open .diamond-gem__inner {
+  animation: safe-diamond-float 3.2s ease-in-out calc(var(--dg-delay, 0s) + 1.1s) infinite;
+}
+
+.diamond-gem__stone {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(
+    145deg,
+    var(--dg-shine) 0%,
+    var(--dg-color) 38%,
+    #0c4a6e 72%,
+    #082f49 100%
+  );
+  clip-path: polygon(50% 0%, 94% 50%, 50% 100%, 6% 50%);
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, 0.2);
+}
+
+.diamond-gem__facet {
+  position: absolute;
+  inset: 8%;
+  opacity: 0.45;
   clip-path: polygon(50% 0%, 100% 50%, 50% 100%, 0% 50%);
+}
+
+.diamond-gem__facet--l {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55), transparent 55%);
+}
+
+.diamond-gem__facet--r {
+  background: linear-gradient(315deg, rgba(0, 0, 0, 0.35), transparent 50%);
+}
+
+.diamond-gem__shine {
+  position: absolute;
+  top: 12%;
+  left: 22%;
+  width: 28%;
+  height: 22%;
+  background: rgba(255, 255, 255, 0.75);
+  border-radius: 40%;
+  filter: blur(1px);
+  transform: rotate(-45deg);
+  animation: safe-diamond-sparkle 2.4s ease-in-out 1.2s infinite;
 }
 
 .safe-visual__door {
@@ -598,39 +631,50 @@
   }
 }
 
-@keyframes safe-mountain-reveal {
-  to {
-    opacity: 1;
-    visibility: visible;
-    transform: scale(1);
+@keyframes safe-mountain-erupt {
+  0% {
+    transform: translateY(55%) scale(0.55);
   }
-}
-
-@keyframes safe-mountain-base-rise {
-  to {
-    opacity: 1;
+  55% {
+    transform: translateY(-6%) scale(1.04);
+  }
+  100% {
     transform: translateY(0) scale(1);
   }
 }
 
-@keyframes safe-mountain-gem-pop {
-  from {
-    transform: rotate(45deg) scale(0);
+@keyframes safe-diamond-slot {
+  0% {
+    transform: scale(0);
     opacity: 0;
   }
-  to {
-    transform: rotate(45deg) scale(1);
+  65% {
+    transform: scale(1.1);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1);
     opacity: 1;
   }
 }
 
-@keyframes safe-mountain-gem-shimmer {
+@keyframes safe-diamond-float {
   0%,
   100% {
-    filter: brightness(1);
+    transform: rotate(45deg) translateY(0);
   }
   50% {
-    filter: brightness(1.25);
+    transform: rotate(45deg) translateY(-6px);
+  }
+}
+
+@keyframes safe-diamond-sparkle {
+  0%,
+  100% {
+    opacity: 0.55;
+  }
+  50% {
+    opacity: 1;
   }
 }
 
@@ -689,6 +733,54 @@
 .safe-code-input:focus {
   border-color: rgba(246, 211, 101, 0.55);
   box-shadow: 0 0 0 4px rgba(246, 211, 101, 0.12);
+}
+
+.safe-code-input--rolling {
+  color: #f6d365;
+  border-color: rgba(246, 211, 101, 0.75);
+  box-shadow:
+    0 0 0 4px rgba(246, 211, 101, 0.18),
+    inset 0 0 20px rgba(246, 211, 101, 0.12);
+  animation: safe-code-slot 0.12s steps(2) infinite;
+}
+
+.safe-host-preview--rolling {
+  animation: safe-preview-pulse 0.35s ease-in-out infinite alternate;
+}
+
+.safe-digit--rolling {
+  animation: safe-digit-slot 0.1s steps(2) infinite;
+  color: #fde047 !important;
+  text-shadow: 0 0 12px rgba(246, 211, 101, 0.8);
+}
+
+@keyframes safe-code-slot {
+  0% {
+    transform: translateY(0);
+  }
+  100% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes safe-digit-slot {
+  0% {
+    transform: scale(1);
+    filter: brightness(1);
+  }
+  100% {
+    transform: scale(1.06);
+    filter: brightness(1.35);
+  }
+}
+
+@keyframes safe-preview-pulse {
+  from {
+    filter: drop-shadow(0 8px 20px rgba(0, 0, 0, 0.4));
+  }
+  to {
+    filter: drop-shadow(0 8px 28px rgba(246, 211, 101, 0.35));
+  }
 }
 
 .numpad {

@@ -13,9 +13,7 @@ export function SafeBoardPage() {
   const playVictory = useVictorySound();
   const lastEventSeqRef = useRef(0);
   const victoryTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const burstTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [popIndex, setPopIndex] = useState<number | null>(null);
-  const [showBurst, setShowBurst] = useState(false);
 
   const display = state?.display ?? ["-", "-", "-"];
   const phase = state?.phase ?? "idle";
@@ -23,7 +21,6 @@ export function SafeBoardPage() {
   useEffect(() => {
     return () => {
       if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
-      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
     };
   }, []);
 
@@ -43,32 +40,22 @@ export function SafeBoardPage() {
     if (ev.type === "wrong") {
       playReject();
       setPopIndex(null);
-      setShowBurst(false);
       if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
-      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
       return;
     }
     if (ev.type === "success") {
       setPopIndex(null);
-      setShowBurst(false);
 
       if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
-      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
 
       victoryTimerRef.current = setTimeout(() => {
         void playVictory();
       }, 920);
-
-      burstTimerRef.current = setTimeout(() => {
-        setShowBurst(true);
-      }, 1100);
       return;
     }
     if (ev.type === "reset") {
-      setShowBurst(false);
       setPopIndex(null);
       if (victoryTimerRef.current) clearTimeout(victoryTimerRef.current);
-      if (burstTimerRef.current) clearTimeout(burstTimerRef.current);
     }
   }, [state, playReject, playVictory]);
 
@@ -94,13 +81,7 @@ export function SafeBoardPage() {
         )}
 
         <div className="safe-board__stage">
-          <SafeVisual
-            display={display}
-            phase={phase}
-            popIndex={popIndex}
-            chroma={chroma}
-            burstActive={showBurst && phase === "success"}
-          />
+          <SafeVisual display={display} phase={phase} popIndex={popIndex} chroma={chroma} />
         </div>
       </div>
     </div>
