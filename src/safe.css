@@ -206,12 +206,13 @@
   border-radius: 3px;
   background: linear-gradient(
     135deg,
-    hsl(var(--gem-hue, 195), 90%, 72%),
-    hsl(calc(var(--gem-hue, 195) + 18), 100%, 88%),
-    hsl(calc(var(--gem-hue, 195) + 6), 85%, 42%)
+    hsl(var(--gem-hue, 195deg), 90%, 72%),
+    hsl(calc(var(--gem-hue, 195deg) + 18deg), 100%, 88%),
+    hsl(calc(var(--gem-hue, 195deg) + 6deg), 85%, 42%)
   );
   box-shadow:
-    0 0 12px hsla(var(--gem-hue, 195), 90%, 65%, 0.55),
+    0 0 14px rgba(56, 189, 248, 0.5),
+    0 0 6px rgba(246, 211, 101, 0.35),
     inset 0 1px 0 rgba(255, 255, 255, 0.45);
   animation: safe-pile-gem-rise 0.7s cubic-bezier(0.2, 0.9, 0.2, 1) backwards;
 }
